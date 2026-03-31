@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!--
+        Register Spring Boot's built-in Logback conversion words:
+          %clr          – ANSI colour (ColorConverter)
+          %wex / %wEx   – whitespace-normalised stack traces
+          %esb          – enclosed-in-square-brackets
+          %correlationId – MDC tracing
+        In Spring Boot 4 these are NOT auto-registered in a custom
+        logback-spring.xml; the include below handles it.
+    -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- ── Values bridged from application.yaml ──────────────────────────── -->
+    <springProperty scope="context" name="LOG_FILE"
+                    source="logging.file.name"
+                    defaultValue="logs/loyalty.log"/>
+    <springProperty scope="context" name="MAX_FILE_SIZE"
+                    source="logging.logback.rollingpolicy.max-file-size"
+                    defaultValue="10MB"/>
+    <springProperty scope="context" name="MAX_HISTORY"
+                    source="logging.logback.rollingpolicy.max-history"
+                    defaultValue="30"/>
+    <springProperty scope="context" name="TOTAL_SIZE_CAP"
+                    source="logging.logback.rollingpolicy.total-size-cap"
+                    defaultValue="300MB"/>
+
+    <!-- ── Patterns ──────────────────────────────────────────────────────── -->
+    <!--  %clr() is a Spring Boot colour conversion word; safe on non-ANSI terminals -->
+    <property name="CONSOLE_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} : %m%n"/>
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"/>
+
+    <!-- ── Console appender ──────────────────────────────────────────────── -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ── Rolling file appender (all levels) ────────────────────────────── -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Daily roll + size limit; old files compressed to .gz -->
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ── Error file appender (ERROR level only) ────────────────────────── -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/loyalty-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/loyalty-error.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ── Async wrappers (non-blocking file I/O) ────────────────────────── -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>  <!-- never drop messages -->
+        <neverBlock>false</neverBlock>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>false</neverBlock>
+        <includeCallerData>true</includeCallerData>  <!-- capture line numbers for errors -->
+    </appender>
+
+    <!-- ── Library logger levels (shared across all profiles) ────────────── -->
+    <logger name="org.hibernate.SQL"              level="WARN"/>
+    <logger name="org.hibernate.orm.jdbc.bind"    level="WARN"/>
+    <logger name="org.springframework.scheduling" level="INFO"/>
+    <logger name="org.springframework.kafka"       level="INFO"/>
+    <logger name="org.apache.kafka"               level="WARN"/>
+    <logger name="com.zaxxer.hikari"              level="INFO"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Profile: default / dev
+         • All three appenders active (console + rolling file + error file)
+         • Application code logged at DEBUG
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <springProfile name="default,dev">
+
+        <logger name="io.github.eendroroy.loyalty" level="DEBUG"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
+
+    </springProfile>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Profile: prod
+         • No console output; file appenders only
+         • Application code logged at INFO
+         • Root at WARN to reduce noise
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <springProfile name="prod">
+
+        <logger name="io.github.eendroroy.loyalty" level="INFO"/>
+        <logger name="org.springframework.scheduling" level="WARN"/>
+        <logger name="org.springframework.kafka"       level="WARN"/>
+
+        <root level="WARN">
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
+
+    </springProfile>
+
+</configuration>
+

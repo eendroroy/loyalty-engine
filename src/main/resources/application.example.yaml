@@ -1,0 +1,120 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: loyalty
+
+  # ── Database ──────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://<HOST>:5432/<DATABASE>
+    username: <USERNAME>
+    password: <PASSWORD>
+    hikari:
+      pool-name: loyalty-pool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ── Kafka ─────────────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: <KAFKA_HOST>:9092
+    consumer:
+      group-id: loyalty-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  # ── Jackson (Spring Boot 4 / Jackson 3) ──────────────────────────────────
+  # write-dates-as-timestamps is disabled by default in Jackson 3.x — no property needed.
+  # default-property-inclusion is set per-DTO via @JsonInclude(NON_NULL).
+
+# ── Actuator ──────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        # Restrict to health + info in production; extend as needed in dev
+        include: health, info, metrics, loggers, scheduledtasks, beans, env
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    info:
+      enabled: true
+    loggers:
+      enabled: true
+    scheduledtasks:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
+
+# ── Application info (exposed via /actuator/info) ─────────────────────────────
+info:
+  app:
+    name: ${spring.application.name}
+    description: Loyalty Management System
+    version: "@project.version@"
+    java-version: "@java.version@"
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Patterns and appenders are configured in logback-spring.xml.
+# The keys below are bridged into logback-spring.xml via <springProperty>.
+# Profile-specific levels (dev vs prod) are also set in logback-spring.xml;
+# the entries here act as a fallback and can be overridden at runtime via
+# the /actuator/loggers endpoint.
+logging:
+  level:
+    root: INFO
+    io.github.eendroroy.loyalty: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.springframework.scheduling: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    com.zaxxer.hikari: INFO
+  file:
+    name: logs/loyalty.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 300MB
+
+# ── SpringDoc / OpenAPI ────────────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
