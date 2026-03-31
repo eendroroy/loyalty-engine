@@ -1,6 +1,7 @@
 export type FieldDataType = 'STRING' | 'INTEGER' | 'DECIMAL' | 'DATE' | 'BOOLEAN';
 export type RuleStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
 export type RewardType = 'POINT' | 'VOUCHER';
+export type VoucherType = 'DISCOUNT';
 export type FileProcessingStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 /** Future: backend enum not yet added to DataSource entity. */
 export type DataSourceType = 'FILE' | 'WEBHOOK';
@@ -195,3 +196,30 @@ export interface Page<T> {
   number: number;
   size: number;
 }
+
+// ── Vouchers ──────────────────────────────────────────────────────────────────
+
+export interface Voucher {
+  id?: number;
+  name: string;
+  code: string;
+  description?: string;
+  voucherType: VoucherType;
+  count: number;
+  active: boolean;
+  archived?: boolean;
+  instanceCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VoucherInstance {
+  id: number;
+  voucherId: number;
+  voucherName: string;
+  voucherCode: string;
+  secretCode: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

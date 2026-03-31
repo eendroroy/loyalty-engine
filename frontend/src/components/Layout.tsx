@@ -17,6 +17,7 @@ const TITLES: Record<string, string> = {
   '/archived-sources': 'Archived Sources',
   '/imported-data':    'Imported Data',
   '/rules':            'Rules',
+  '/vouchers':         'Vouchers',
   '/monitor':          'Monitor',
 };
 

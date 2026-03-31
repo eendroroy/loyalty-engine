@@ -9,6 +9,7 @@ import TableViewRoundedIcon     from '@mui/icons-material/TableViewRounded';
 import GavelRoundedIcon         from '@mui/icons-material/GavelRounded';
 import MonitorHeartRoundedIcon  from '@mui/icons-material/MonitorHeartRounded';
 import LoyaltyRoundedIcon       from '@mui/icons-material/LoyaltyRounded';
+import ConfirmationNumberRoundedIcon from '@mui/icons-material/ConfirmationNumberRounded';
 
 export const DRAWER_WIDTH = 240;
 
@@ -18,6 +19,7 @@ const NAV = [
   { label: 'Archived Sources', path: '/archived-sources', icon: <ArchiveRoundedIcon /> },
   { label: 'Imported Data',    path: '/imported-data',    icon: <TableViewRoundedIcon /> },
   { label: 'Rules',            path: '/rules',            icon: <GavelRoundedIcon /> },
+  { label: 'Vouchers',         path: '/vouchers',         icon: <ConfirmationNumberRoundedIcon /> },
   { label: 'Monitor',          path: '/monitor',          icon: <MonitorHeartRoundedIcon /> },
 ];
 

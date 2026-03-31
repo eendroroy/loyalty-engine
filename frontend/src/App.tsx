@@ -9,6 +9,8 @@ import RuleForm from './pages/RuleForm';
 import Monitoring from './pages/Monitoring';
 import ImportedData from './pages/ImportedData';
 import ImportedDataTable from './pages/ImportedDataTable';
+import Vouchers from './pages/Vouchers';
+import VoucherForm from './pages/VoucherForm';
 
 export default function App() {
   return (
@@ -28,6 +30,10 @@ export default function App() {
         <Route path="/rules/new"                 element={<RuleForm />} />
         <Route path="/rules/:id"                 element={<RuleForm />} />
         <Route path="/monitor"                   element={<Monitoring />} />
+        <Route path="/vouchers"                  element={<Vouchers />} />
+        <Route path="/vouchers/new"              element={<VoucherForm />} />
+        <Route path="/vouchers/:id"              element={<VoucherForm readOnly />} />
+        <Route path="/vouchers/:id/edit"         element={<VoucherForm />} />
       </Routes>
     </Layout>
   );
