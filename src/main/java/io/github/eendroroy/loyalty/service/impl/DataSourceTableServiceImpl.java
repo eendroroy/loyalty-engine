@@ -11,7 +11,7 @@ import io.github.eendroroy.loyalty.repository.DataSourceSchemaFieldRepository;
 import io.github.eendroroy.loyalty.service.DataSourceTableService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DataSourceTableServiceImpl implements DataSourceTableService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcClient jdbcClient;
     private final DataSourceSchemaFieldRepository schemaFieldRepository;
 
     // ── Table DDL ─────────────────────────────────────────────────────────────
@@ -77,7 +77,9 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         var sql = new StringBuilder("CREATE TABLE IF NOT EXISTS ")
                 .append(quoteTableName(tableName))
                 .append(" (id BIGSERIAL PRIMARY KEY,")
-                .append(" created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                .append(" created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,")
+                .append(" source VARCHAR(255),")
+                .append(" file_read_time TIMESTAMP");
 
         for (DataSourceField field : fields) {
             sql.append(", ").append(quoteIdentifier(field.getFieldAlias()))
@@ -86,7 +88,7 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         sql.append(")");
 
         try {
-            jdbcTemplate.execute(sql.toString());
+            jdbcClient.sql(sql.toString()).update();
             log.info("Ensured destination table '{}' for DataSource {}", tableName, dataSource.getId());
         } catch (Exception e) {
             log.error("Failed to create destination table '{}': {}", tableName, e.getMessage());
@@ -113,7 +115,9 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         var sql = new StringBuilder("CREATE TABLE IF NOT EXISTS ")
                 .append(quoteTableName(tableName))
                 .append(" (id BIGSERIAL PRIMARY KEY,")
-                .append(" created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                .append(" created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,")
+                .append(" source VARCHAR(255),")
+                .append(" file_read_time TIMESTAMP");
 
         for (DataSourceSchemaField field : schemaFields) {
             sql.append(", ").append(quoteIdentifier(field.getName()))
@@ -122,7 +126,7 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         sql.append(")");
 
         try {
-            jdbcTemplate.execute(sql.toString());
+            jdbcClient.sql(sql.toString()).update();
             log.info("Ensured destination table '{}' for DataSource {} (schema-based)",
                     tableName, dataSource.getId());
         } catch (Exception e) {
@@ -154,19 +158,31 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
             try {
                 var cols = new ArrayList<String>();
                 var vals = new ArrayList<>();
+                
+                // Add metadata columns first
+                cols.add("source");
+                vals.add(record.source());
+                
+                cols.add("file_read_time");
+                vals.add(record.fileReadTime());
+                
+                // Add user data fields
                 for (var entry : record.fields().entrySet()) {
                     if (byAlias.containsKey(entry.getKey())) {
                         cols.add(quoteIdentifier(entry.getKey()));
                         vals.add(entry.getValue());
                     }
                 }
+                
                 if (cols.isEmpty()) continue;
                 String colList = String.join(", ", cols);
                 String placeholders = cols.stream().map(_c -> "?").collect(Collectors.joining(", "));
-                jdbcTemplate.update(
-                        "INSERT INTO " + quoteTableName(tableName)
-                                + " (" + colList + ") VALUES (" + placeholders + ")",
-                        vals.toArray());
+                String insertSql = "INSERT INTO " + quoteTableName(tableName)
+                        + " (" + colList + ") VALUES (" + placeholders + ")";
+                
+                jdbcClient.sql(insertSql)
+                        .params(vals)
+                        .update();
                 inserted++;
             } catch (Exception e) {
                 log.warn("Failed to insert record into {}: {}", tableName, e.getMessage());
@@ -184,8 +200,12 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         String tableName = validTableName(dataSource.getDestinationTable());
         if (tableName == null) return new ArrayList<>();
         try {
-            return jdbcTemplate.queryForList("SELECT * FROM " + quoteTableName(tableName))
-                    .stream().map(this::rowToIngestedRecord).collect(Collectors.toList());
+            return jdbcClient.sql("SELECT * FROM " + quoteTableName(tableName))
+                    .query()
+                    .listOfRows()
+                    .stream()
+                    .map(this::rowToIngestedRecord)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.warn("Failed to query table '{}': {}", tableName, e.getMessage());
             return new ArrayList<>();
@@ -229,8 +249,10 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
 
         long total;
         try {
-            Long count = jdbcTemplate.queryForObject(countSql, Long.class, where.params().toArray());
-            total = count != null ? count : 0;
+            total = jdbcClient.sql(countSql)
+                    .params(where.params())
+                    .query(Long.class)
+                    .single();
         } catch (Exception e) {
             log.warn("Table '{}' not yet created or query failed: {}", tableName, e.getMessage());
             return TableDataResponse.builder()
@@ -245,8 +267,13 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
 
         List<Map<String, Object>> rows;
         try {
-            rows = jdbcTemplate.queryForList(dataSql, pageParams.toArray())
-                    .stream().map(this::normaliseRow).collect(Collectors.toList());
+            rows = jdbcClient.sql(dataSql)
+                    .params(pageParams)
+                    .query()
+                    .listOfRows()
+                    .stream()
+                    .map(this::normaliseRow)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to query data from '{}': {}", tableName, e.getMessage());
             rows = List.of();
@@ -267,7 +294,7 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         String tableName = validTableName(dataSource.getDestinationTable());
         if (tableName == null) return;
         try {
-            jdbcTemplate.update("DELETE FROM " + quoteTableName(tableName));
+            jdbcClient.sql("DELETE FROM " + quoteTableName(tableName)).update();
             log.info("Deleted all records from table '{}'", tableName);
         } catch (Exception e) {
             log.error("Failed to delete from '{}': {}", tableName, e.getMessage());
@@ -283,7 +310,7 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
         String tableName = validTableName(dataSource.getDestinationTable());
         if (tableName == null) return;
         try {
-            jdbcTemplate.execute("DROP TABLE IF EXISTS " + quoteTableName(tableName));
+            jdbcClient.sql("DROP TABLE IF EXISTS " + quoteTableName(tableName)).update();
             log.info("Dropped destination table '{}'", tableName);
         } catch (Exception e) {
             log.error("Failed to drop '{}': {}", tableName, e.getMessage());
@@ -366,10 +393,20 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
     private String buildOrderBy(String sortBy, String sortDir, List<DataSourceField> fields) {
         String dir = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         if (sortBy == null || sortBy.isBlank()) return " ORDER BY created_at DESC";
-        boolean valid = "id".equals(sortBy) || "created_at".equals(sortBy)
+        
+        boolean valid = "id".equals(sortBy) || "created_at".equals(sortBy) 
+                || "source".equals(sortBy) || "file_read_time".equals(sortBy)
                 || fields.stream().anyMatch(f -> f.getFieldAlias().equals(sortBy));
+                
         if (!valid) return " ORDER BY created_at DESC";
-        String col = "id".equals(sortBy) || "created_at".equals(sortBy) ? sortBy : quoteIdentifier(sortBy);
+        
+        String col;
+        if ("id".equals(sortBy) || "created_at".equals(sortBy) 
+                || "source".equals(sortBy) || "file_read_time".equals(sortBy)) {
+            col = sortBy;
+        } else {
+            col = quoteIdentifier(sortBy);
+        }
         return " ORDER BY " + col + " " + dir;
     }
 
@@ -384,14 +421,34 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
     }
 
     private List<ColumnMeta> buildColumnMeta(List<DataSourceField> fields) {
-        return fields.stream()
+        var columns = new ArrayList<ColumnMeta>();
+        
+        // Add system metadata columns first
+        columns.add(ColumnMeta.builder()
+                .alias("source")
+                .fieldName("source")
+                .dataType(FieldDataType.STRING)
+                .description("Data source identifier (FILE:<filename> or HOOK:<producer>)")
+                .build());
+                
+        columns.add(ColumnMeta.builder()
+                .alias("file_read_time")
+                .fieldName("file_read_time")
+                .dataType(FieldDataType.DATE)
+                .description("Timestamp when the data was ingested")
+                .build());
+        
+        // Add user-defined data fields
+        columns.addAll(fields.stream()
                 .map(f -> ColumnMeta.builder()
                         .alias(f.getFieldAlias())
                         .fieldName(f.getFieldName())
                         .dataType(f.getDataType())
                         .description(f.getDescription())
                         .build())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+                
+        return columns;
     }
 
     /**
@@ -438,8 +495,10 @@ public class DataSourceTableServiceImpl implements DataSourceTableService {
     private IngestedRecord rowToIngestedRecord(Map<String, Object> row) {
         var data = new HashMap<String, Object>();
         row.forEach((k, v) -> {
-            if (!k.equals("id") && !k.equals("created_at")) data.put(k, v);
+            if (!k.equals("id") && !k.equals("created_at") && !k.equals("source") && !k.equals("file_read_time")) {
+                data.put(k, v);
+            }
         });
-        return new IngestedRecord(null, null, null, data);
+        return new IngestedRecord(null, null, null, null, null, data);
     }
 }

@@ -117,6 +117,11 @@ public class DataPullServiceImpl implements DataPullService {
             return new DataPullResult(0, 0, 0);
         }
 
+        // Capture file metadata for tracking
+        String fileName = filePath.getFileName().toString();
+        String sourceIdentifier = "FILE:" + fileName;
+        LocalDateTime fileReadTime = LocalDateTime.now();
+
         // Ensure destination table exists if configured
         if (ds.getDestinationTable() != null && !ds.getDestinationTable().isBlank()) {
             tableService.createDestinationTableIfNotExists(ds, fileConfig.getFields());
@@ -175,7 +180,8 @@ public class DataPullServiceImpl implements DataPullService {
                         }
 
                         if (!hasValue) { skipped++; continue; }
-                        records.add(new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), rowData));
+                        records.add(new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), 
+                                sourceIdentifier, fileReadTime, rowData));
                         ingested++;
                     } catch (Exception e) {
                         log.warn("Error parsing row {} in '{}': {}",

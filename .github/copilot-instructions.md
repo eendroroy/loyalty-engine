@@ -42,7 +42,7 @@ These documentation files contain ALL information needed to recreate the entire 
 | Backend | Java 25 · Spring Boot 4 · Spring Data JPA · Spring Kafka |
 | Database | PostgreSQL — schema via Hibernate `ddl-auto: update`, no migrations |
 | Messaging | Apache Kafka (dependency present; producers/consumers not yet coded) |
-| ORM | Hibernate / Spring Data JPA + raw `JdbcTemplate` for destination tables |
+| ORM | Hibernate / Spring Data JPA + modern `JdbcClient` for destination tables |
 | Mapping | MapStruct 1.6.3 (`componentModel = "spring"`) |
 | Code gen | Lombok |
 | Rule Engine | Custom recursive descent parser with AST evaluation |
@@ -71,7 +71,7 @@ src/main/java/.../loyalty/
                    # WebhookContentType, VoucherType, ComparisonOperator
   event/           # Spring application event records (incl. RuleTriggeredEvent, DataPulledEvent)
   mapper/          # MapStruct interfaces + MapStructConfig (incl. VoucherMapper)
-  model/           # Non-JPA value types: IngestedRecord, DataPullResult, EvaluationResult
+  model/           # Non-JPA value types: IngestedRecord (with metadata tracking), DataPullResult, EvaluationResult
   repository/      # Spring Data JPA repositories (incl. VoucherRepository, VoucherInstanceRepository)
   rule/            # Complete rule language engine
     ast/           # Abstract syntax tree: ParsedRule, LogicalNode, Condition, RewardSpec
@@ -483,6 +483,14 @@ These features are **complete and production-ready**:
 - Real-time validation with immediate feedback
 - Tabular field management using DataGrid components
 - Auto-generated webhook paths and sample request bodies
+
+### ✅ Automatic Data Lineage & Metadata Tracking
+- **Source Tracking**: Every imported row includes `source` metadata ("FILE:<filename>" or "HOOK:<producer>")
+- **Temporal Tracking**: `file_read_time` timestamp captures exact ingestion time
+- **Destination Table Enhancement**: All tables automatically include metadata columns
+- **Complete Audit Trail**: Full traceability from raw data to processed records
+- **Type-Safe Integration**: Enhanced `IngestedRecord` model with metadata fields
+- **Modern JDBC**: Upgraded to Spring 6.1+ `JdbcClient` for improved performance and safety
 
 ### ✅ Live Validation & UI Enhancements
 - Real-time rule expression validation with visual feedback

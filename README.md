@@ -12,7 +12,7 @@ A comprehensive loyalty management platform with rule-based reward automation, v
 
 - **🎯 Enhanced Visual Rule Builder** — Dual-mode editing (text + visual) with live validation and advanced grouping
 - **🎟️ Dynamic Voucher Management** — Complete lifecycle with unique secret code generation and auto-awarding
-- **📊 Multi-Source Data Ingestion** — File uploads + webhook endpoints with schema management
+- **📊 Multi-Source Data Ingestion** — File uploads + webhook endpoints with schema management and automatic metadata tracking
 - **⚡ Real-Time Processing** — Event-driven rule evaluation and reward fulfillment
 - **📈 Comprehensive Monitoring** — Live status tracking and processing history
 - **🎨 Modern UI** — React 18 + TypeScript + MUI v6 with responsive design and accessibility

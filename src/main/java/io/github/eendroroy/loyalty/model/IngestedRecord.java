@@ -14,12 +14,16 @@ import java.util.Map;
  * @param dataSourceId  ID of the originating {@code DataSource}
  * @param sourceName    human-readable name of the originating source
  * @param ingestedAt    wall-clock time at which this record was produced
+ * @param source        source identifier (e.g., "FILE:transactions.csv", "HOOK:external_api")
+ * @param fileReadTime  timestamp when the source file was read (for file-based imports)
  * @param fields        alias → typed-value map for this row
  */
 public record IngestedRecord(
         Long dataSourceId,
         String sourceName,
         LocalDateTime ingestedAt,
+        String source,
+        LocalDateTime fileReadTime,
         Map<String, Object> fields) {
 }
 

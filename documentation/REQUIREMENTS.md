@@ -337,9 +337,38 @@ CREATE INDEX idx_voucher_instances_voucher_id ON voucher_instances(voucher_id);
 CREATE INDEX idx_voucher_instances_secret_code ON voucher_instances(secret_code);
 ```
 
-### Data Access Patterns
+**Dynamic Destination Tables**
 
-#### Repository Pattern Implementation
+Destination tables are dynamically created for each data source to store ingested records. These tables include automatic metadata tracking for data lineage and audit purposes.
+
+```sql
+-- Example destination table structure (auto-generated)
+CREATE TABLE customer_transactions (  -- Name from DataSource.destination_table
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Metadata columns (automatically added to all destination tables)
+    source VARCHAR(255),           -- Source identifier: "FILE:<filename>" or "HOOK:<producer>"
+    file_read_time TIMESTAMP,      -- Timestamp when data was ingested
+    
+    -- User-defined data columns (from DataSourceField or DataSourceSchemaField)
+    customer_id VARCHAR(255),      -- Example: mapped from source field
+    transaction_amount DECIMAL(19, 2),
+    transaction_date DATE,
+    transaction_type VARCHAR(255),
+    -- ... additional fields as defined in schema
+);
+```
+
+**Metadata Column Details:**
+- `source`: Tracks data origin with format:
+  - `"FILE:transactions_2024.csv"` for file uploads
+  - `"HOOK:payment_gateway"` for webhook ingestion
+- `file_read_time`: Precise timestamp when the source data was processed
+- Enables complete data lineage tracking and audit capabilities
+- Supports data quality analysis and source-specific debugging
+
+### Data Access Patterns
 ```java
 @Repository
 public interface VoucherRepository extends JpaRepository<Voucher, Long> {
@@ -525,10 +554,12 @@ public record DataPulledEvent(
 ) implements ApplicationEvent {}
 
 public record IngestedRecord(
-    String transactionId,
-    String customerId,
-    Map<String, Object> fields,
-    Instant processedAt
+    Long dataSourceId,        // ID of the originating DataSource
+    String sourceName,        // Human-readable name of the originating source
+    LocalDateTime ingestedAt, // Wall-clock time when record was produced
+    String source,           // Source identifier: "FILE:<filename>" or "HOOK:<producer>"
+    LocalDateTime fileReadTime, // Timestamp when the source data was read/received
+    Map<String, Object> fields  // Field alias → typed-value map for this row
 ) {}
 ```
 
@@ -1865,7 +1896,9 @@ logging:
             <executions>
                 <execution>
                     <id>install-node-and-npm</id>
-                    <goals><goal>install-node-and-npm</goal></goals>
+                    <goals>
+                        <goal>install-node-and-npm</goal>
+                    </goals>
                     <configuration>
                         <nodeVersion>v22.14.0</nodeVersion>
                         <npmVersion>10.9.2</npmVersion>
@@ -1873,13 +1906,21 @@ logging:
                 </execution>
                 <execution>
                     <id>npm-install</id>
-                    <goals><goal>npm</goal></goals>
-                    <configuration><arguments>install</arguments></configuration>
+                    <goals>
+                        <goal>npm</goal>
+                    </goals>
+                    <configuration>
+                        <arguments>install</arguments>
+                    </configuration>
                 </execution>
                 <execution>
                     <id>npm-build</id>
-                    <goals><goal>npm</goal></goals>
-                    <configuration><arguments>run build</arguments></configuration>
+                    <goals>
+                        <goal>npm</goal>
+                    </goals>
+                    <configuration>
+                        <arguments>run build</arguments>
+                    </configuration>
                 </execution>
             </executions>
         </plugin>

@@ -90,6 +90,11 @@ public class WebhookIngestionServiceImpl implements WebhookIngestionService {
             return new DataPullResult(0, 1, 0);
         }
 
+        // Capture webhook metadata for tracking
+        String producerName = ds.getName() != null ? ds.getName() : "webhook_" + webhook.getId();
+        String sourceIdentifier = "HOOK:" + producerName;
+        LocalDateTime webhookIngestTime = LocalDateTime.now();
+
         // Build synthetic DataSourceField list from schema fields (webhook properties)
         var syntheticFields = properties.stream().map(this::schemaFieldToDataSourceField).toList();
 
@@ -120,7 +125,8 @@ public class WebhookIngestionServiceImpl implements WebhookIngestionService {
         // Ensure destination table and insert
         if (ds.getDestinationTable() != null && !ds.getDestinationTable().isBlank()) {
             tableService.createDestinationTableIfNotExists(ds, syntheticFields);
-            var record = new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), rowData);
+            var record = new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), 
+                    sourceIdentifier, webhookIngestTime, rowData);
             tableService.insertRecords(ds, List.of(record), syntheticFields);
             eventPublisher.publishEvent(new DataPulledEvent(List.of(record)));
             log.info("Webhook id={} ingested 1 record into '{}' ({} skipped fields)",
@@ -129,7 +135,8 @@ public class WebhookIngestionServiceImpl implements WebhookIngestionService {
         }
 
         // No destination table — still publish event
-        var record = new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), rowData);
+        var record = new IngestedRecord(ds.getId(), ds.getName(), LocalDateTime.now(), 
+                sourceIdentifier, webhookIngestTime, rowData);
         eventPublisher.publishEvent(new DataPulledEvent(List.of(record)));
         log.info("Webhook id={} processed 1 record (no destination table configured)", webhook.getId());
         return new DataPullResult(1, skipped, 0);
