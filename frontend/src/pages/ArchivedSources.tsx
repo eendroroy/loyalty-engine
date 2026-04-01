@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Chip, IconButton, Tooltip, Alert, Typography,
-  Paper, Divider, Stack,
+  Paper, Divider, Stack, useTheme, alpha,
 } from '@mui/material';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import DeleteForeverRoundedIcon  from '@mui/icons-material/DeleteForeverRounded';
@@ -17,8 +17,14 @@ import {
   dropDestinationTable,
 } from '../api/dataSources';
 import type { DataSource } from '../types';
+
 type ActionKind = 'purge-data' | 'drop-table' | 'delete-source';
+
 export default function ArchivedSources() {
+  const theme  = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const accent = theme.palette.primary.main;
+
   const [rows, setRows]       = useState<DataSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -148,25 +154,72 @@ export default function ArchivedSources() {
         title="Archived Sources"
         crumbs={[{ label: 'Archived Sources' }]}
       />
-      <Paper variant="outlined" sx={{ mb: 2, p: 2, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 2 }}>
-        <Typography variant="body2" fontWeight={600}>
-          ⚠ These data sources are archived. File watchers are disabled. Actions below are irreversible.
-        </Typography>
-        <Divider sx={{ my: 1, borderColor: 'rgba(0,0,0,0.15)' }} />
-        <Stack direction="row" spacing={3}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <TableRowsRoundedIcon fontSize="small" />
-            <Typography variant="caption">Purge data — clears all rows, table stays</Typography>
+
+      <Paper
+        variant="outlined"
+        sx={{
+          mb: 2,
+          p: 2.5,
+          bgcolor: isDark ? alpha(accent, 0.12) : alpha(accent, 0.06),
+          border: `1px solid ${alpha(accent, isDark ? 0.25 : 0.18)}`,
+          borderRadius: 3,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Accent border at left */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: 0, top: 0, bottom: 0,
+            width: 4,
+            bgcolor: accent,
+          }}
+        />
+
+        <Box sx={{ pl: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Box
+              sx={{
+                width: 24, height: 24,
+                borderRadius: '6px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: alpha(accent, isDark ? 0.25 : 0.15),
+                color: accent,
+                fontSize: '0.9rem',
+                fontWeight: 700,
+              }}
+            >
+              ⚠
+            </Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? accent : 'error.dark' }}>
+              These data sources are archived. File watchers are disabled. Actions below are irreversible.
+            </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <TableChartRoundedIcon fontSize="small" />
-            <Typography variant="caption">Drop table — removes the entire table</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <DeleteForeverRoundedIcon fontSize="small" />
-            <Typography variant="caption">Delete source — permanently removes the record</Typography>
-          </Box>
-        </Stack>
+
+          <Divider sx={{ my: 1.5, borderColor: alpha(accent, isDark ? 0.15 : 0.12) }} />
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 1, md: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <TableRowsRoundedIcon sx={{ fontSize: 16, color: accent }} />
+              <Typography variant="caption" color="text.primary" sx={{ fontWeight: 500 }}>
+                Purge data — clears all rows, table stays
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <TableChartRoundedIcon sx={{ fontSize: 16, color: accent }} />
+              <Typography variant="caption" color="text.primary" sx={{ fontWeight: 500 }}>
+                Drop table — removes the entire table
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <DeleteForeverRoundedIcon sx={{ fontSize: 16, color: accent }} />
+              <Typography variant="caption" color="text.primary" sx={{ fontWeight: 500 }}>
+                Delete source — permanently removes the record
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
       </Paper>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>

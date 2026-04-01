@@ -57,6 +57,126 @@ The Loyalty Management System follows a layered architecture with clear separati
 
 ---
 
+## Frontend Architecture Specifications
+
+### Technology Stack (Frontend)
+
+| Component | Technology | Version | Purpose | Configuration |
+|-----------|------------|---------|---------|---------------|
+| **Framework** | React | 18+ | UI framework | Functional components with hooks |
+| **Type System** | TypeScript | 5+ | Type safety | Strict mode enabled |
+| **Build Tool** | Vite | 6+ | Frontend bundler | Hot reload, tree shaking, ESBuild |
+| **UI Library** | Material-UI (MUI) | v6+ | Component library | Custom theme with dual-mode support |
+| **State Management** | React Context | Built-in | Global state | Theme and user preferences |
+| **HTTP Client** | Axios | Latest | API communication | Request/response interceptors |
+| **Date Handling** | Day.js | Latest | Date manipulation | Lightweight moment.js alternative |
+| **Icons** | MUI Icons | v6+ | Icon system | Material Design icons |
+| **Data Grid** | MUI X DataGrid | v7+ | Advanced tables | Sorting, filtering, pagination |
+
+### Modern Dashboard Theme System
+
+#### Color Palette Specifications
+```typescript
+// Primary Brand Colors (Red Theme)
+PRIMARY_RED: '#DC2626'      // Modern bright red - main primary
+PRIMARY_DARK: '#B91C1C'     // Darker red for hover states  
+PRIMARY_LIGHT: '#F87171'    // Light red for accents
+
+// Secondary Colors (Complementary)
+SECONDARY_BLUE: '#3B82F6'   // Modern blue for secondary actions
+SECONDARY_DARK: '#1E40AF'   // Dark blue
+SECONDARY_LIGHT: '#60A5FA'  // Light blue
+
+// System Colors
+SUCCESS_GREEN: '#059669'    // Modern green
+WARNING_AMBER: '#D97706'    // Modern amber/orange
+ERROR_RED: '#DC2626'        // Same as primary red
+INFO_BLUE: '#0EA5E9'        // Sky blue for info
+
+// Dark Theme Colors
+DARK_BG: '#0F0F23'          // Very dark navy/black background
+DARK_PAPER: '#1A1B2E'       // Dark paper/card backgrounds
+DARK_SURFACE: '#16213E'     // Sidebar/appbar surface
+DARK_ACCENT: '#E53E3E'      // Bright red accent for dark mode
+
+// Light Theme Colors  
+LIGHT_BG: '#FFFFFF'         // Pure white background
+LIGHT_PAPER: '#FAFAFA'      // Light gray for cards
+LIGHT_SURFACE: '#F8FAFC'    // Very light gray for surfaces
+LIGHT_ACCENT: '#DC2626'     // Red accent for light mode
+```
+
+#### Typography Specifications
+```typescript
+// Font Family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue"
+h1: { fontWeight: 700, fontSize: '2.125rem' }
+h2: { fontWeight: 600, fontSize: '1.875rem' }
+h3: { fontWeight: 600, fontSize: '1.5rem' }
+h4: { fontWeight: 600, fontSize: '1.25rem' }
+h5: { fontWeight: 600, fontSize: '1.125rem' }
+h6: { fontWeight: 600, fontSize: '1rem' }
+body1: { fontSize: '0.875rem', lineHeight: 1.6 }
+button: { fontWeight: 500, textTransform: 'none' }
+```
+
+#### Component Styling Standards
+- **Border Radius**: 8-12px for modern look
+- **Shadows**: Enhanced depth with proper elevation
+- **Transitions**: 0.2s ease-in-out for smooth interactions
+- **Hover Effects**: Subtle transform animations (translateY(-1px))
+- **Button Styling**: Enhanced shadows with color variations
+- **Input Borders**: 2px focus borders with accent colors
+- **Card Design**: Clean shadows with subtle borders
+
+#### Theme Mode System
+- **Default Mode**: Light mode (production default)
+- **Dark Mode**: Available via context toggle
+- **Persistence**: Theme preference stored in localStorage
+- **System Integration**: Respects system preferences
+- **Context API**: Global theme state management
+- **Type Safety**: Full TypeScript support for custom palette
+
+### Component Architecture Patterns
+
+#### Visual Rule Builder (Enhanced)
+```typescript
+// Dual-mode editing interface
+interface RuleBuilderProps {
+  metadata: Metadata;
+  initialExpression?: string;
+  onExpressionChange: (expression: string) => void;
+}
+
+// Three-column condition builder
+interface ConditionBuilder {
+  property: string;    // Data source field
+  operator: ComparisonOperator;
+  value: string | number | boolean;
+}
+```
+
+#### Form Validation Patterns
+```typescript
+// Live validation with debouncing
+const [validationResult, setValidationResult] = useState<ValidationResult>();
+const [isValidating, setIsValidating] = useState(false);
+
+// 800ms debounce for expression validation
+useEffect(() => {
+  const timer = setTimeout(() => validateExpression(), 800);
+  return () => clearTimeout(timer);
+}, [expression]);
+```
+
+#### Data Grid Integration
+- **MUI X DataGrid**: Advanced table functionality
+- **Server-side operations**: Sorting, filtering, pagination
+- **Custom toolbar**: Export, search, column management
+- **Responsive design**: Mobile-friendly layouts
+- **Type safety**: Full TypeScript integration
+
+---
+
 ## System Requirements
 
 ### Functional Requirements

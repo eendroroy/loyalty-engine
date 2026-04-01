@@ -47,7 +47,7 @@ These documentation files contain ALL information needed to recreate the entire 
 | Code gen | Lombok |
 | Rule Engine | Custom recursive descent parser with AST evaluation |
 | API docs | SpringDoc OpenAPI 2 (`/swagger-ui.html`, `/v3/api-docs`) |
-| Frontend | React 18 · TypeScript · Vite · MUI v6 · MUI X DataGrid · Axios · Day.js |
+| Frontend | React 18 · TypeScript · Vite · MUI v6 · MUI X DataGrid · Axios · Day.js · Recharts |
 | Build | Maven Wrapper (`./mvnw`) · frontend-maven-plugin |
 
 Root package: `io.github.eendroroy.loyalty`
@@ -89,7 +89,8 @@ frontend/src/
   components/      # Shared UI: Layout, Sidebar, PageHeader, ConfirmDialog, FieldBrowser
   pages/           # Route-level components (incl. Vouchers, VoucherForm with live validation)
   types/index.ts   # All TypeScript interfaces and enums (incl. Voucher, VoucherInstance)
-  theme.ts         # MUI dark theme (warm brick-red palette)
+  theme.ts         # Dual-mode design system: light (default) + dark (near-black navy, vivid crimson #E53935)
+                   # createAppTheme(mode) — light is default, dark matches high-contrast dashboard aesthetic
 ```
 
 ---
@@ -490,7 +491,24 @@ These features are **complete and production-ready**:
 - Enhanced error handling with detailed parse error messages
 - Debounced validation to prevent API spam
 
-### ✅ Enhanced Visual Rule Builder (v0.3.0)
+### ✅ Dual-Mode Design System (v0.4.0)
+- **Light theme (default)**: Soft blue-grey canvas (`#F1F4F9`), white cards, vivid crimson accents
+- **Dark theme**: Near-black navy canvas (`#0B0C12`), dark charcoal cards (`#14151F`), vivid crimson (`#E53935`)
+- Glassmorphism AppBar with backdrop-blur in both modes
+- Red gradient buttons with crimson glow shadow
+- Custom scrollbar, refined typography scale with negative letter-spacing
+- Context-aware Chip, TableCell, Tooltip, Dialog, ToggleButton overrides
+
+### ✅ Enhanced Dashboard (v0.4.0)
+- 4 stat cards with gradient icon bubbles, accent top-bar, trend badges
+- Recharts AreaChart with red gradient fill (matches dashboard image aesthetic)
+- Activity Feed panel with colored dots and Rule Health progress bar
+- Recent Rules table with priority badges and monospace expression preview
+
+### ✅ Enhanced UI Shell (v0.4.0)
+- Sidebar: gradient brand logo, version badge, "Main Menu" section label
+- AppBar: glassmorphism blur, notification badge, gradient avatar with hover scale
+- PageHeader: subtitle support, secondary action button, NavigateNext breadcrumb separator
 - **Dual-Mode Interface**: Toggle between text editor and visual builder
 - **Structured WHEN/THEN Sections**: Clear visual hierarchy with prominent section headers
 - **Three-Column Condition Builder**: Property → Operator → Value layout with smart filtering
