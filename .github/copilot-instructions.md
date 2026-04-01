@@ -1,5 +1,40 @@
 # GitHub Copilot Instructions — Loyalty Management System
 
+## Documentation Management Standards
+
+### **CRITICAL: Documentation Standards & Maintenance**
+
+**Documentation Files Structure:**
+- `README.md` — Main repository landing page (standard GitHub format)
+- `documentation/REQUIREMENTS.md` — All technical specifications and system architecture
+- `documentation/BRD.md` — Business requirements document (for business stakeholders only)
+- `documentation/diagrams/` — Technical diagrams (system architecture, database schema, deployment)
+- `.github/copilot-instructions.md` — This file (complete technical implementation guide)
+
+**Documentation Rules:**
+1. **NEVER create new `.md` files** — only maintain existing ones
+2. **Always update documentation** when project changes occur
+3. **Keep technical content isolated** in `documentation/REQUIREMENTS.md` only
+4. **Keep business content isolated** in `documentation/BRD.md` only (strictly business-focused)
+5. **Maintain complete rebuild instructions** across these files
+6. **Update this file** when architecture or patterns change
+
+**Project Recreation Capability:**
+These documentation files contain ALL information needed to recreate the entire project from scratch, including detailed technical specifications, business requirements, implementation patterns, and architectural decisions.
+
+**When making ANY project changes:**
+1. Update relevant documentation files immediately
+2. Ensure these files collectively contain complete rebuild capability
+3. Keep README.md as professional repository overview
+4. Maintain consistency across all documentation
+5. Document architectural decisions in this file
+6. Keep business requirements in `documentation/BRD.md` (strictly business-focused)
+7. Keep technical specifications in `documentation/REQUIREMENTS.md`
+
+---
+
+# GitHub Copilot Instructions — Loyalty Management System
+
 ## Stack at a Glance
 
 | Layer | Technology |
@@ -338,22 +373,64 @@ const handleCopy = (code: string) => {
 </Box>
 ```
 
-### Smart Field Insertion
+### Enhanced Visual Rule Builder Component
 ```tsx
-// Enhanced handleInsertField in RuleForm.tsx
-const handleInsertField = (alias: string) => {
-  // Auto-format as source.field
-  let fieldRef = alias;
-  if (metadata) {
-    for (const source of metadata.dataSources) {
-      const field = source.fields.find(f => f.alias === alias);
-      if (field) {
-        fieldRef = `${source.name}.${alias}`;
-        break;
-      }
-    }
-  }
-  // Insert at cursor position...
+// RuleBuilder.tsx - Complete visual rule construction interface
+const RuleBuilder = ({ metadata, initialExpression, onExpressionChange }: Props) => {
+  const [conditionGroups, setConditionGroups] = useState<ConditionGroup[]>([]);
+  const [reward, setReward] = useState<Reward>({ type: 'POINT', value: '' });
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  
+  // Load active vouchers for dropdown
+  useEffect(() => {
+    getVouchers().then(response => 
+      setVouchers(response.data.filter(v => v.active && !v.archived))
+    );
+  }, []);
+  
+  // Generate expression from visual components
+  const generateExpression = (): string => {
+    // Complex logic for building WHEN...THEN expressions with proper parentheses
+  };
+  
+  // Render structured WHEN/THEN interface with:
+  // - Expandable condition groups
+  // - Three-column condition builder
+  // - Live voucher dropdown
+  // - Real-time expression preview
+};
+```
+
+### Dual-Mode Rule Form Integration
+```tsx
+// RuleForm.tsx - Toggle between text and visual modes
+const RuleForm = () => {
+  const [ruleEditorMode, setRuleEditorMode] = useState<'text' | 'visual'>('text');
+  
+  // Toggle interface with seamless mode switching
+  <ToggleButtonGroup
+    value={ruleEditorMode}
+    exclusive
+    onChange={(_, newMode) => setRuleEditorMode(newMode)}
+  >
+    <ToggleButton value="text">
+      <CodeRoundedIcon /> Text Editor
+    </ToggleButton>
+    <ToggleButton value="visual">
+      <BuildRoundedIcon /> Visual Builder
+    </ToggleButton>
+  </ToggleButtonGroup>
+  
+  // Conditional rendering based on mode
+  {ruleEditorMode === 'text' ? (
+    <TextField /* enhanced text editor with syntax guide */ />
+  ) : (
+    <RuleBuilder
+      metadata={metadata}
+      initialExpression={form.ruleExpression}
+      onExpressionChange={(expression) => setForm(prev => ({ ...prev, ruleExpression: expression }))}
+    />
+  )}
 };
 ```
 
@@ -413,6 +490,17 @@ These features are **complete and production-ready**:
 - Enhanced error handling with detailed parse error messages
 - Debounced validation to prevent API spam
 
+### ✅ Enhanced Visual Rule Builder (v0.3.0)
+- **Dual-Mode Interface**: Toggle between text editor and visual builder
+- **Structured WHEN/THEN Sections**: Clear visual hierarchy with prominent section headers
+- **Three-Column Condition Builder**: Property → Operator → Value layout with smart filtering
+- **Advanced Grouping**: Visual condition groups with expand/collapse and parentheses support
+- **Live Voucher Integration**: Real-time voucher dropdown with availability tracking
+- **Expression Preview**: Prominent rule text display at top with copy functionality
+- **Context-Aware UI**: Field type-based operator filtering and input controls
+- **Progressive Disclosure**: Expandable groups for better organization
+- **Mobile Responsive**: Full mobile and desktop support with accessibility features
+
 ---
 
 ## What Is NOT Yet Implemented
@@ -444,9 +532,19 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 
 ---
 
-## Current Status (v0.2.0) — Production Ready ✅
+## Current Status (v0.3.0) — Production Ready ✅
 
-### Rule Language & Voucher Management
+### Enhanced Visual Rule Builder & Complete Platform
+
+**Enhanced Visual Rule Builder (v0.3.0)**:
+- Dual-mode interface with seamless text/visual switching
+- Structured WHEN/THEN sections with clear visual hierarchy  
+- Three-column condition builder: Property → Operator → Value
+- Advanced grouping with expandable cards and parentheses support
+- Live voucher integration with availability tracking
+- Context-aware UI with field type-based operator filtering
+- Real-time expression preview with copy functionality
+- Mobile responsive design with full accessibility support
 
 **Complete Rule Language Engine**:
 - Natural `WHEN ... THEN ...` syntax with full parser and evaluator
@@ -456,7 +554,7 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 - Automatic reward fulfillment for points and vouchers
 - Event-driven evaluation on data ingestion
 
-**Voucher Management System**:
+**Dynamic Voucher Management System**:
 - Complete voucher lifecycle (create, edit, archive, purge)
 - Unique 7-character alphanumeric secret code generation
 - Capacity management with instance tracking

@@ -3,51 +3,169 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
 
-> **Repository:** `git@github.com:eendroroy/loyalty.git`
+A comprehensive loyalty management platform with rule-based reward automation, voucher management, and multi-source data ingestion capabilities. Features an intuitive admin interface with visual rule builder, real-time validation, and comprehensive monitoring.
 
-A comprehensive backend system for managing loyalty programs with **multi-source data ingestion**,
-**advanced rule language engine**, **dynamic voucher management**, and **real-time reward distribution**. 
-Features an intuitive admin interface with enhanced data source management, webhook configuration, 
-live rule validation, and comprehensive monitoring.
+## 🚀 Key Features
 
----
+- **🎯 Enhanced Visual Rule Builder** — Dual-mode editing (text + visual) with live validation and advanced grouping
+- **🎟️ Dynamic Voucher Management** — Complete lifecycle with unique secret code generation and auto-awarding
+- **📊 Multi-Source Data Ingestion** — File uploads + webhook endpoints with schema management
+- **⚡ Real-Time Processing** — Event-driven rule evaluation and reward fulfillment
+- **📈 Comprehensive Monitoring** — Live status tracking and processing history
+- **🎨 Modern UI** — React 18 + TypeScript + MUI v6 with responsive design and accessibility
 
-## Table of Contents
+**Complete Project Recreation**: All documentation files collectively provide comprehensive instructions, patterns, and specifications needed to rebuild this entire system from scratch.
 
-- [Overview](#overview)
-- [Recent Updates](#recent-updates)
-- [Tech Stack](#tech-stack)
-- [Key Features](#key-features)
-- [Rule Language](#rule-language)
-- [Architecture](#architecture)
-- [Package Structure](#package-structure)
-- [Prerequisites](#prerequisites)
-- [Configuration](#configuration)
-- [Build and Run](#build-and-run)
-- [Admin Interface](#admin-interface)
-- [Swagger UI](#swagger-ui)
-- [API Reference](#api-reference)
-- [Monitoring](#monitoring)
-- [License](#license)
+## 🛠️ Tech Stack
 
----
+| Layer | Technology |
+|---|---|
+| **Backend** | Java 25 • Spring Boot 4 • Spring Data JPA • PostgreSQL |
+| **Frontend** | React 18 • TypeScript • Vite • MUI v6 • Axios |
+| **Build** | Maven • frontend-maven-plugin |
+| **API Docs** | SpringDoc OpenAPI 2 |
+| **Code Gen** | Lombok • MapStruct |
 
-## Overview
+## 📋 Quick Start
 
-The system provides a complete loyalty management platform with:
+### Prerequisites
+- Java 25+
+- Node.js 18+
+- PostgreSQL 15+
+- Maven 3.9+
 
-1. **Enhanced Data Source Management** — Multi-step wizard with schema-first architecture,
-   real-time validation, auto-generated webhooks, and comprehensive field management.
-   
-2. **Advanced Rule Language Engine** — Natural `WHEN ... THEN ...` syntax with live validation,
-   type-aware evaluation, and automatic reward fulfillment supporting points and vouchers.
-   
-3. **Dynamic Voucher Management** — Complete voucher lifecycle with unique secret code generation,
-   capacity management, and auto-awarding through rule triggers.
-   
-4. **Real-time Monitoring** — Live file watcher status, webhook monitoring, processing history,
-   and rule execution tracking with comprehensive audit trails.
+### Setup & Run
+```bash
+# Clone the repository
+git clone git@github.com:eendroroy/loyalty.git
+cd loyalty
+
+# Configure database
+cp src/main/resources/application.example.yaml src/main/resources/application.yaml
+# Edit application.yaml with your database credentials
+
+# Build and run
+mvn clean package -DskipTests
+mvn spring-boot:run
+```
+
+Application will be available at:
+- **Admin UI**: http://localhost:8080
+- **API Documentation**: http://localhost:8080/swagger-ui.html
+- **Health Check**: http://localhost:8080/actuator/health
+
+## 📖 Documentation
+
+- **[documentation/BRD.md](documentation/BRD.md)** — Business Requirements Document for stakeholders and business users
+- **[documentation/REQUIREMENTS.md](documentation/REQUIREMENTS.md)** — Complete technical specifications and system architecture
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — Development guidelines and implementation patterns
+- **[documentation/diagrams/](documentation/diagrams/)** — Technical diagrams including system architecture, database schema, and deployment flows
+
+**Project Recreation**: These documentation files contain ALL information needed to recreate the entire project from scratch, including detailed business requirements, technical specifications, implementation patterns, and architectural decisions.
+
+## 🎯 Rule Language
+
+Create powerful loyalty rules with natural syntax:
+
+```sql
+-- Simple point reward
+WHEN transaction.amount > 50 THEN Point(100)
+
+-- Complex conditions with logic
+WHEN transaction.category = "grocery" AND transaction.date >= 2025-01-01 THEN Point(30)
+
+-- Voucher rewards with grouping
+WHEN (transaction.amount > 100 OR customer.tier = "gold") THEN Voucher(SUMMER25)
+```
+
+**Supported Features:**
+- **Operators**: `>`, `<`, `>=`, `<=`, `=`, `!=`, `CONTAINS`, `STARTS_WITH`, `ENDS_WITH`
+- **Logic**: `AND`, `OR`, parentheses for grouping
+- **Data Types**: Numbers, dates (YYYY-MM-DD), strings, booleans
+- **Rewards**: Points and Voucher codes
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   File Upload   │    │   Webhook API    │    │  Manual Entry   │
+│     (CSV)       │    │    (JSON)        │    │    (Forms)      │
+└─────────┬───────┘    └────────┬─────────┘    └─────────┬───────┘
+          │                     │                        │
+          └─────────────────────┼────────────────────────┘
+                                │
+                    ┌───────────▼────────────┐
+                    │   Data Ingestion       │
+                    │   Processing Engine    │
+                    └───────────┬────────────┘
+                                │
+                    ┌───────────▼────────────┐
+                    │   Rule Evaluation      │
+                    │   Engine (AST)         │
+                    └───────────┬────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+┌─────────▼───────┐   ┌─────────▼────────┐   ┌───────▼────────┐
+│ Point Rewards   │   │ Voucher Awards   │   │ Event Logging  │
+│ (Accumulation)  │   │ (Secret Codes)   │   │ (Audit Trail)  │
+└─────────────────┘   └──────────────────┘   └────────────────┘
+```
+
+## 📁 Project Structure
+
+```
+loyalty/
+├── src/main/java/io/github/eendroroy/loyalty/
+│   ├── config/          # Spring configuration
+│   ├── controller/      # REST endpoints
+│   ├── entity/          # JPA entities
+│   ├── rule/            # Rule language engine
+│   ├── service/         # Business logic
+│   └── ...
+├── frontend/src/
+│   ├── api/             # API integrations
+│   ├── components/      # React components
+│   ├── pages/           # Route components
+│   └── types/           # TypeScript definitions
+├── documentation/       # Project documentation
+│   ├── BRD.md          # Business requirements
+│   ├── REQUIREMENTS.md  # Technical specifications
+│   └── diagrams/        # Technical diagrams
+└── README.md           # This file
+```
+
+## 🔧 Development
+
+### Build Commands
+```bash
+mvn clean package -DskipTests          # Full build (backend + frontend)
+mvn spring-boot:run                    # Run locally
+mvn compile -DskipTests -Dfrontend.build.skip=true  # Backend only
+mvn test                               # Run tests
+```
+
+### API Endpoints
+- `GET /api/admin/rules` — List rules
+- `POST /api/admin/rules/validate-expression` — Validate rule syntax
+- `GET /api/admin/vouchers` — List vouchers  
+- `POST /api/admin/vouchers/{id}/award` — Award voucher instance
+- `GET /api/admin/data-sources` — List data sources
+- `POST /web-hook/{dataSourceName}` — Webhook ingestion endpoint
+
+## 🐛 Issues & Contributing
+
+1. Check existing issues before creating new ones
+2. Follow established code patterns (see [copilot-instructions.md](.github/copilot-instructions.md))
+3. Update documentation when making changes
+4. Ensure tests pass before submitting PRs
+
+## 📄 License
+
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Recent Updates
 

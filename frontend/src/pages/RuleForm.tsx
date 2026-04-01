@@ -4,6 +4,7 @@ import {
   Box, Card, CardContent, TextField, MenuItem, Button,
   Divider, Alert, CircularProgress, Tab, Tabs, Typography,
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
+  ToggleButtonGroup, ToggleButton,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
@@ -11,11 +12,14 @@ import AddRoundedIcon    from '@mui/icons-material/AddRounded';
 import EditRoundedIcon   from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import SaveRoundedIcon   from '@mui/icons-material/SaveRounded';
+import CodeRoundedIcon   from '@mui/icons-material/CodeRounded';
+import BuildRoundedIcon  from '@mui/icons-material/BuildRounded';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { type Dayjs } from 'dayjs';
 import PageHeader    from '../components/PageHeader';
 import ConfirmDialog from '../components/ConfirmDialog';
 import FieldBrowser  from '../components/FieldBrowser';
+import RuleBuilder   from '../components/RuleBuilder';
 import {
   getRule, createRule, updateRule,
   getActions, createAction, updateAction, deleteAction, validateExpression,
@@ -50,6 +54,7 @@ export default function RuleForm() {
   const [metadata, setMetadata]                 = useState<Metadata | null>(null);
   const [validating, setValidating]             = useState(false);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; error?: string } | null>(null);
+  const [ruleEditorMode, setRuleEditorMode]     = useState<'text' | 'visual'>('text');
 
   /** Ref to the rule-expression <textarea> for cursor-position insertion. */
   const expressionRef = useRef<HTMLTextAreaElement>(null);
@@ -252,62 +257,120 @@ export default function RuleForm() {
 
               {/* Row 3 — rule expression */}
               <Grid size={{ xs: 12 }}>
-                <TextField
-                  fullWidth multiline rows={6} required
-                  label="Rule Expression"
-                  value={form.ruleExpression}
-                  onChange={set('ruleExpression')}
-                  error={validationResult?.valid === false}
-                  helperText={
-                    validating ? 'Validating...' :
-                    validationResult?.valid === false ? `❌ ${validationResult.error}` :
-                    validationResult?.valid === true ? '✅ Expression is valid' :
-                    'Enter a WHEN ... THEN ... rule expression'
-                  }
-                  inputProps={{
-                    style: { fontFamily: 'monospace', fontSize: '0.85rem' },
-                    ref: expressionRef,
-                  }}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      backgroundColor: validationResult?.valid === false ? 'error.50' :
-                                       validationResult?.valid === true ? 'success.50' : undefined,
-                    },
-                  }}
-                />
-
-                {/* Syntax Guide */}
-                <Box sx={{ mt: 1, p: 2, bgcolor: 'background.paper', border: '1px solid',
-                           borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                    📖 Rule Language Syntax
+                {/* Rule Editor Mode Toggle */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Rule Expression *
                   </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}>
-                    <strong>Basic:</strong> WHEN [condition] THEN [reward]
-                  </Typography>
-                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
-                    <strong>Conditions:</strong> source.field &gt; 50, source.field = "value", source.active = true
-                  </Typography>
-                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
-                    <strong>Operators:</strong> &gt;, &lt;, &gt;=, &lt;=, =, !=, CONTAINS, STARTS_WITH, ENDS_WITH
-                  </Typography>
-                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
-                    <strong>Logic:</strong> AND, OR, parentheses for grouping
-                  </Typography>
-                  <Typography variant="body2" component="div">
-                    <strong>Rewards:</strong> Point(30) or Voucher(SUMMER25)
-                  </Typography>
-
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                    💡 Click field names below to insert them into your expression
-                  </Typography>
+                  <ToggleButtonGroup
+                    value={ruleEditorMode}
+                    exclusive
+                    onChange={(_, newMode) => {
+                      if (newMode !== null) {
+                        setRuleEditorMode(newMode);
+                      }
+                    }}
+                    size="small"
+                  >
+                    <ToggleButton value="text">
+                      <CodeRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+                      Text Editor
+                    </ToggleButton>
+                    <ToggleButton value="visual">
+                      <BuildRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+                      Visual Builder
+                    </ToggleButton>
+                  </ToggleButtonGroup>
                 </Box>
+
+                {ruleEditorMode === 'text' ? (
+                  <>
+                    <TextField
+                      fullWidth multiline rows={6} required
+                      label="Rule Expression"
+                      value={form.ruleExpression}
+                      onChange={set('ruleExpression')}
+                      error={validationResult?.valid === false}
+                      helperText={
+                        validating ? 'Validating...' :
+                        validationResult?.valid === false ? `❌ ${validationResult.error}` :
+                        validationResult?.valid === true ? '✅ Expression is valid' :
+                        'Enter a WHEN ... THEN ... rule expression'
+                      }
+                      inputProps={{
+                        style: { fontFamily: 'monospace', fontSize: '0.85rem' },
+                        ref: expressionRef,
+                      }}
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          backgroundColor: validationResult?.valid === false ? 'error.50' :
+                                           validationResult?.valid === true ? 'success.50' : undefined,
+                        },
+                      }}
+                    />
+
+                    {/* Syntax Guide */}
+                    <Box sx={{ mt: 1, p: 2, bgcolor: 'background.paper', border: '1px solid',
+                               borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        📖 Rule Language Syntax
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}>
+                        <strong>Basic:</strong> WHEN [condition] THEN [reward]
+                      </Typography>
+                      <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                        <strong>Conditions:</strong> source.field &gt; 50, source.field = "value", source.active = true
+                      </Typography>
+                      <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                        <strong>Operators:</strong> &gt;, &lt;, &gt;=, &lt;=, =, !=, CONTAINS, STARTS_WITH, ENDS_WITH
+                      </Typography>
+                      <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                        <strong>Logic:</strong> AND, OR, parentheses for grouping
+                      </Typography>
+                      <Typography variant="body2" component="div">
+                        <strong>Rewards:</strong> Point(30) or Voucher(SUMMER25)
+                      </Typography>
+
+                      <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                        💡 Click field names below to insert them into your expression
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <RuleBuilder
+                    metadata={metadata}
+                    initialExpression={form.ruleExpression}
+                    onExpressionChange={(expression) => setForm(prev => ({ ...prev, ruleExpression: expression }))}
+                  />
+                )}
+
+                {/* Validation Status */}
+                {ruleEditorMode === 'visual' && (
+                  <Box sx={{ mt: 1 }}>
+                    {validating ? (
+                      <Alert severity="info" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CircularProgress size={16} />
+                        Validating expression...
+                      </Alert>
+                    ) : validationResult?.valid === false ? (
+                      <Alert severity="error">
+                        ❌ {validationResult.error}
+                      </Alert>
+                    ) : validationResult?.valid === true ? (
+                      <Alert severity="success">
+                        ✅ Expression is valid
+                      </Alert>
+                    ) : null}
+                  </Box>
+                )}
               </Grid>
 
-              {/* Row 4 — field browser */}
-              <Grid size={{ xs: 12 }}>
-                <FieldBrowser metadata={metadata} onInsert={handleInsertField} />
-              </Grid>
+              {/* Row 4 — field browser (only in text mode) */}
+              {ruleEditorMode === 'text' && (
+                <Grid size={{ xs: 12 }}>
+                  <FieldBrowser metadata={metadata} onInsert={handleInsertField} />
+                </Grid>
+              )}
 
               {/* Row 5 — frequency / active from / active to */}
               <Grid size={{ xs: 12, sm: 4 }}>
