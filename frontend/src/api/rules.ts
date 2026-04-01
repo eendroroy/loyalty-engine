@@ -10,6 +10,9 @@ export const createRule  = (data: RulePayload) => client.post<Rule>('/rules', da
 export const updateRule  = (id: number, data: RulePayload) => client.put<Rule>(`/rules/${id}`, data);
 export const deleteRule  = (id: number) => client.delete(`/rules/${id}`);
 
+export const validateExpression = (expression: string) =>
+  client.post<{ valid: boolean; error?: string }>('/rules/validate-expression', { expression });
+
 export const getActions    = (ruleId: number) => client.get<RuleAction[]>(`/rules/${ruleId}/actions`);
 export const createAction  = (ruleId: number, data: ActionPayload) =>
   client.post<RuleAction>(`/rules/${ruleId}/actions`, data);

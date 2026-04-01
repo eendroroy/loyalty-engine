@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box, Card, CardContent, TextField, MenuItem, Button,
-  Divider, Alert, CircularProgress, Tab, Tabs,
+  Divider, Alert, CircularProgress, Tab, Tabs, Typography,
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
@@ -18,7 +18,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import FieldBrowser  from '../components/FieldBrowser';
 import {
   getRule, createRule, updateRule,
-  getActions, createAction, updateAction, deleteAction,
+  getActions, createAction, updateAction, deleteAction, validateExpression,
 } from '../api/rules';
 import { getMetadata } from '../api/metadata';
 import type { Rule, RuleAction, RuleStatus, RewardType, Metadata } from '../types';
@@ -48,22 +48,54 @@ export default function RuleForm() {
   const [editActionId, setEditActionId]         = useState<number | null>(null);
   const [deleteActionId, setDeleteActionId]     = useState<number | null>(null);
   const [metadata, setMetadata]                 = useState<Metadata | null>(null);
+  const [validating, setValidating]             = useState(false);
+  const [validationResult, setValidationResult] = useState<{ valid: boolean; error?: string } | null>(null);
 
   /** Ref to the rule-expression <textarea> for cursor-position insertion. */
   const expressionRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Debounced expression validation */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (form.ruleExpression.trim()) {
+        setValidating(true);
+        validateExpression(form.ruleExpression)
+          .then((r) => setValidationResult(r.data))
+          .catch(() => setValidationResult({ valid: false, error: 'Validation request failed' }))
+          .finally(() => setValidating(false));
+      } else {
+        setValidationResult(null);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form.ruleExpression]);
 
   /** Insert a field alias at the current cursor position in the expression. */
   const handleInsertField = (alias: string) => {
     const el  = expressionRef.current;
     const pos = el?.selectionStart ?? form.ruleExpression.length;
     const cur = form.ruleExpression;
-    const next = cur.slice(0, pos) + alias + cur.slice(pos);
+
+    // Try to find the source name from metadata to create proper source.field format
+    let fieldRef = alias;
+    if (metadata) {
+      for (const source of metadata.dataSources) {
+        const field = source.fields.find(f => f.alias === alias);
+        if (field) {
+          fieldRef = `${source.name}.${alias}`;
+          break;
+        }
+      }
+    }
+
+    const next = cur.slice(0, pos) + fieldRef + cur.slice(pos);
     setForm((p) => ({ ...p, ruleExpression: next }));
+
     // Restore cursor just after the inserted text
     requestAnimationFrame(() => {
       if (el) {
-        el.selectionStart = pos + alias.length;
-        el.selectionEnd   = pos + alias.length;
+        el.selectionStart = pos + fieldRef.length;
+        el.selectionEnd   = pos + fieldRef.length;
         el.focus();
       }
     });
@@ -221,16 +253,55 @@ export default function RuleForm() {
               {/* Row 3 — rule expression */}
               <Grid size={{ xs: 12 }}>
                 <TextField
-                  fullWidth multiline rows={5} required
+                  fullWidth multiline rows={6} required
                   label="Rule Expression"
                   value={form.ruleExpression}
                   onChange={set('ruleExpression')}
-                  helperText="Expression evaluated to true/false when the rule fires — click a field below to insert its alias"
+                  error={validationResult?.valid === false}
+                  helperText={
+                    validating ? 'Validating...' :
+                    validationResult?.valid === false ? `❌ ${validationResult.error}` :
+                    validationResult?.valid === true ? '✅ Expression is valid' :
+                    'Enter a WHEN ... THEN ... rule expression'
+                  }
                   inputProps={{
                     style: { fontFamily: 'monospace', fontSize: '0.85rem' },
                     ref: expressionRef,
                   }}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      backgroundColor: validationResult?.valid === false ? 'error.50' :
+                                       validationResult?.valid === true ? 'success.50' : undefined,
+                    },
+                  }}
                 />
+
+                {/* Syntax Guide */}
+                <Box sx={{ mt: 1, p: 2, bgcolor: 'background.paper', border: '1px solid',
+                           borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                    📖 Rule Language Syntax
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 1 }}>
+                    <strong>Basic:</strong> WHEN [condition] THEN [reward]
+                  </Typography>
+                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                    <strong>Conditions:</strong> source.field &gt; 50, source.field = "value", source.active = true
+                  </Typography>
+                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                    <strong>Operators:</strong> &gt;, &lt;, &gt;=, &lt;=, =, !=, CONTAINS, STARTS_WITH, ENDS_WITH
+                  </Typography>
+                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                    <strong>Logic:</strong> AND, OR, parentheses for grouping
+                  </Typography>
+                  <Typography variant="body2" component="div">
+                    <strong>Rewards:</strong> Point(30) or Voucher(SUMMER25)
+                  </Typography>
+
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                    💡 Click field names below to insert them into your expression
+                  </Typography>
+                </Box>
               </Grid>
 
               {/* Row 4 — field browser */}

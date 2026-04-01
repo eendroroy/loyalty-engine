@@ -29,6 +29,8 @@ public class SpaController {
             "/monitor/**",
             "/rules",
             "/rules/**",
+            "/vouchers",
+            "/vouchers/**",
     })
     public String spa() {
         return "forward:/index.html";

@@ -4,6 +4,7 @@ import io.github.eendroroy.loyalty.entity.Rule;
 import io.github.eendroroy.loyalty.enums.RuleStatus;
 import io.github.eendroroy.loyalty.event.RuleDeletedEvent;
 import io.github.eendroroy.loyalty.event.RuleSavedEvent;
+import io.github.eendroroy.loyalty.service.RuleEvaluationService;
 import io.github.eendroroy.loyalty.service.RuleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -26,6 +28,7 @@ public class RuleScheduler {
 
     private final ThreadPoolTaskScheduler taskScheduler;
     private final RuleService ruleService;
+    private final RuleEvaluationService ruleEvaluationService;
 
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
@@ -74,7 +77,11 @@ public class RuleScheduler {
 
     private void evaluate(Rule rule) {
         log.info("Evaluating rule: '{}' — expression: {}", rule.getName(), rule.getRuleExpression());
-        // TODO: delegate to RuleEvaluationService once rule engine is implemented
+        // Scheduled evaluation does not have a fresh record batch;
+        // evaluation against live data requires a data pull or snapshot.
+        // Delegate to RuleEvaluationService with an empty list — any
+        // source-bound evaluations will be no-ops until a data pull fires.
+        ruleEvaluationService.evaluate(List.of());
         ruleService.updateLastRunAt(rule.getId());
     }
 }

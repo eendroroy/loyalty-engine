@@ -5,6 +5,7 @@ import io.github.eendroroy.loyalty.enums.RuleStatus;
 import io.github.eendroroy.loyalty.event.RuleDeletedEvent;
 import io.github.eendroroy.loyalty.event.RuleSavedEvent;
 import io.github.eendroroy.loyalty.repository.RuleRepository;
+import io.github.eendroroy.loyalty.rule.RuleParser;
 import io.github.eendroroy.loyalty.service.RuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,6 +23,7 @@ public class RuleServiceImpl implements RuleService {
 
     private final RuleRepository repository;
     private final ApplicationEventPublisher eventPublisher;
+    private final RuleParser ruleParser;
 
     @Override
     @Transactional(readOnly = true)
@@ -44,6 +46,10 @@ public class RuleServiceImpl implements RuleService {
     @Override
     @Transactional
     public Rule save(Rule entity) {
+        // Validate expression before persisting — throws RuleParseException on failure
+        if (entity.getRuleExpression() != null && !entity.getRuleExpression().isBlank()) {
+            ruleParser.parse(entity.getRuleExpression());
+        }
         Rule saved = repository.save(entity);
         eventPublisher.publishEvent(new RuleSavedEvent(saved));
         return saved;
@@ -60,6 +66,12 @@ public class RuleServiceImpl implements RuleService {
     @Transactional(readOnly = true)
     public List<Rule> findAllActiveWithFrequency() {
         return repository.findByStatusAndFrequencyIsNotNull(RuleStatus.ACTIVE);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Rule> findAllActive() {
+        return repository.findByStatus(RuleStatus.ACTIVE);
     }
 
     @Override

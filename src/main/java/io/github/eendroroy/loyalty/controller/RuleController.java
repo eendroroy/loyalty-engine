@@ -1,11 +1,15 @@
 package io.github.eendroroy.loyalty.controller;
 
+import io.github.eendroroy.loyalty.dto.request.ExpressionValidationRequest;
 import io.github.eendroroy.loyalty.dto.request.RuleActionRequest;
 import io.github.eendroroy.loyalty.dto.request.RuleRequest;
+import io.github.eendroroy.loyalty.dto.response.ExpressionValidationResponse;
 import io.github.eendroroy.loyalty.dto.response.RuleActionResponse;
 import io.github.eendroroy.loyalty.dto.response.RuleResponse;
 import io.github.eendroroy.loyalty.mapper.RuleActionMapper;
 import io.github.eendroroy.loyalty.mapper.RuleMapper;
+import io.github.eendroroy.loyalty.rule.RuleParser;
+import io.github.eendroroy.loyalty.rule.exception.RuleParseException;
 import io.github.eendroroy.loyalty.service.RuleActionService;
 import io.github.eendroroy.loyalty.service.RuleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +45,30 @@ public class RuleController {
     private final RuleActionService ruleActionService;
     private final RuleMapper ruleMapper;
     private final RuleActionMapper ruleActionMapper;
+    private final RuleParser ruleParser;
+
+    // ── Expression validation ─────────────────────────────────────────────────
+
+    /**
+     * Validates a rule expression without persisting anything.
+     *
+     * @param request the expression to validate
+     * @return {@code 200 OK} with {@code {valid: true}} or {@code {valid: false, error: "..."}};
+     *         never returns 4xx — parse failures are reported in the body
+     */
+    @Operation(summary = "Validate a rule expression",
+               description = "Parses the expression and returns whether it is syntactically valid.")
+    @ApiResponse(responseCode = "200", description = "Validation result returned")
+    @PostMapping("/validate-expression")
+    public ExpressionValidationResponse validateExpression(
+            @Valid @RequestBody ExpressionValidationRequest request) {
+        try {
+            ruleParser.parse(request.getExpression());
+            return ExpressionValidationResponse.builder().valid(true).build();
+        } catch (RuleParseException e) {
+            return ExpressionValidationResponse.builder().valid(false).error(e.getMessage()).build();
+        }
+    }
 
     // ── Rule CRUD ─────────────────────────────────────────────────────────────
 

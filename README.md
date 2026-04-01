@@ -7,8 +7,9 @@
 > **Repository:** `git@github.com:eendroroy/loyalty.git`
 
 A comprehensive backend system for managing loyalty programs with **multi-source data ingestion**,
-**dynamic rule evaluation**, and **flexible reward distribution**. Features an intuitive admin
-interface with enhanced data source management, webhook configuration, and real-time monitoring.
+**advanced rule language engine**, **dynamic voucher management**, and **real-time reward distribution**. 
+Features an intuitive admin interface with enhanced data source management, webhook configuration, 
+live rule validation, and comprehensive monitoring.
 
 ---
 
@@ -17,6 +18,8 @@ interface with enhanced data source management, webhook configuration, and real-
 - [Overview](#overview)
 - [Recent Updates](#recent-updates)
 - [Tech Stack](#tech-stack)
+- [Key Features](#key-features)
+- [Rule Language](#rule-language)
 - [Architecture](#architecture)
 - [Package Structure](#package-structure)
 - [Prerequisites](#prerequisites)
@@ -25,71 +28,151 @@ interface with enhanced data source management, webhook configuration, and real-
 - [Admin Interface](#admin-interface)
 - [Swagger UI](#swagger-ui)
 - [API Reference](#api-reference)
-- [Rule Expression Syntax](#rule-expression-syntax)
-- [Data Source Field Aliases](#data-source-field-aliases)
-- [File Watcher and Ingestion](#file-watcher-and-ingestion)
 - [Monitoring](#monitoring)
-- [Actuator Endpoints](#actuator-endpoints)
 - [License](#license)
 
 ---
 
 ## Overview
 
-The system provides an admin API (backing a React admin panel) for:
+The system provides a complete loyalty management platform with:
 
-1. **Enhanced Data Source Management** — Comprehensive multi-step form for configuring data sources
-   with schema fields, file paths, and webhook endpoints. Features real-time validation, auto-generated
-   webhook paths, and sample request body generation.
+1. **Enhanced Data Source Management** — Multi-step wizard with schema-first architecture,
+   real-time validation, auto-generated webhooks, and comprehensive field management.
    
-2. **Intelligent Webhook Configuration** — Simplified webhook model with auto-synced properties from
-   schema fields, eliminating redundant field definitions while providing rich configuration options.
+2. **Advanced Rule Language Engine** — Natural `WHEN ... THEN ...` syntax with live validation,
+   type-aware evaluation, and automatic reward fulfillment supporting points and vouchers.
    
-3. **Dynamic Rule Engine** — Rules written in custom `WHEN ... THEN ...` expression language with
-   lifecycle management (`DRAFT / ACTIVE / INACTIVE`) and cron-based evaluation.
+3. **Dynamic Voucher Management** — Complete voucher lifecycle with unique secret code generation,
+   capacity management, and auto-awarding through rule triggers.
    
-4. **Flexible Reward Distribution** — Multi-type reward actions (`POINT` or `VOUCHER`) with
-   comprehensive tracking and monitoring.
-
----
+4. **Real-time Monitoring** — Live file watcher status, webhook monitoring, processing history,
+   and rule execution tracking with comprehensive audit trails.
 
 ## Recent Updates
 
-### 🎉 Enhanced Data Source Management (v0.1.0)
+### ✅ **v0.2.0 — Rule Language & Voucher Management** (Latest)
 
-- **Multi-Step Form Wizard**: Intuitive 3-step process (Details → Ingestion → Review)
-- **Schema-First Architecture**: Define destination table columns with auto-sync to webhooks
-- **Advanced File Management**: CSV parsing options, field mappings, and tabular interfaces
-- **Webhook Enhancements**: 
-  - Auto-generated webhook paths (`POST /web-hook?dataSourceName={name}`)
-  - Real-time sample request body generation
-  - Enable/disable toggle with description support
-- **Archive Management**: Soft-delete with purge options for data and table cleanup
-- **Type Safety**: Full TypeScript integration with comprehensive error handling
-- **Real-Time Validation**: Form validation with immediate feedback
+**Complete Rule Language Engine**:
+- Natural `WHEN ... THEN ...` syntax with full parser and evaluator
+- Live expression validation with syntax guide in admin UI
+- Type-aware evaluation supporting strings, numbers, dates, booleans
+- Complex logic with AND/OR operators and parentheses grouping
+- Automatic reward fulfillment for points and vouchers
+- Event-driven evaluation on data ingestion
 
-### 🔧 Technical Improvements
+**Voucher Management System**:
+- Complete voucher lifecycle (create, edit, archive, purge)
+- Unique 7-character alphanumeric secret code generation
+- Capacity management with instance tracking
+- Auto-awarding through rule triggers with conflict prevention
+- Copy-to-clipboard functionality for secret codes
+- Archive/active separation with comprehensive status tracking
 
-- **Simplified Webhook Model**: Properties auto-sync from schema fields (no duplicate definitions)
-- **Enhanced Type Safety**: Strict TypeScript types with proper error handling
-- **Clean Architecture**: Separated UI state management from entity operations
-- **Improved UX**: Visual status indicators, real-time field validation, comprehensive field management
+**Enhanced UI Experience**:
+- Live rule expression validation with visual feedback
+- Comprehensive syntax guide with examples and operator reference
+- Smart field insertion with auto-formatted `source.field` references
+- Debounced validation to prevent API spam
+- Enhanced error handling with detailed parse error messages
+
+### ✅ **v0.1.0 — Enhanced Data Source Management**
+
+**Frontend Enhancements**:
+- Multi-step wizard interface (Details → Ingestion → Review)
+- Real-time validation with immediate feedback
+- Tabular field management using DataGrid components
+- Auto-generated webhook paths and sample request bodies
+- Enhanced error handling with comprehensive type safety
+
+**Backend Improvements**:
+- Schema-first architecture with auto-synced webhook properties
+- Simplified webhook model (one per data source)
+- Enhanced field management with atomic transactions
+- Archive/purge lifecycle with conflict detection
+- Comprehensive event system for reactive processing
 
 ---
 
 ## Tech Stack
 
-| Layer           | Technology                                                      |
-|-----------------|-----------------------------------------------------------------|
-| Language        | Java 25                                                         |
-| Framework       | Spring Boot 4.0.5 (Web MVC, Data JPA, Kafka, Validation)        |
-| Database        | PostgreSQL (schema managed via Hibernate `ddl-auto: update`)    |
-| Messaging       | Apache Kafka                                                    |
-| ORM             | Hibernate / Spring Data JPA                                     |
-| Code generation | Lombok, MapStruct 1.6.3                                         |
-| API Docs        | SpringDoc OpenAPI 2.8.5 (Swagger UI at `/swagger-ui.html`)      |
-| Build           | Maven Wrapper (`./mvnw`)                                        |
-| Auditing        | Spring Data JPA (`@CreatedDate`, `@LastModifiedDate`)           |
+| Layer | Technology |
+|---|---|
+| Backend | Java 25 · Spring Boot 4 · Spring Data JPA · Spring Kafka |
+| Database | PostgreSQL — schema via Hibernate `ddl-auto: update` |
+| Messaging | Apache Kafka (dependency present; producers/consumers future) |
+| ORM | Hibernate / Spring Data JPA + raw `JdbcTemplate` for destination tables |
+| Mapping | MapStruct 1.6.3 (`componentModel = "spring"`) |
+| Code Gen | Lombok |
+| Rule Engine | Custom recursive descent parser with AST evaluation |
+| API Docs | SpringDoc OpenAPI 2 (`/swagger-ui.html`, `/v3/api-docs`) |
+| Frontend | React 18 · TypeScript · Vite · MUI v6 · MUI X DataGrid · Axios · Day.js |
+| Build | Maven Wrapper (`./mvnw`) · frontend-maven-plugin |
+
+Root package: `io.github.eendroroy.loyalty`
+
+---
+
+## Key Features
+
+### 🎯 **Rule Language Engine**
+- **Natural Syntax**: `WHEN transaction.amount > 50 THEN Point(100)`
+- **Complex Logic**: AND/OR operators with parentheses grouping
+- **Type Safety**: Automatic type coercion with runtime validation
+- **Live Validation**: Real-time syntax checking in admin UI
+- **Smart Editor**: Field insertion with `source.field` auto-formatting
+
+### 🎫 **Voucher Management**
+- **Complete Lifecycle**: Create, edit, archive, purge with capacity tracking
+- **Unique Codes**: 7-character alphanumeric secret codes (A-Z, 0-9)
+- **Auto-Awarding**: Rule-triggered voucher instance generation
+- **Capacity Control**: Instance limits with overflow prevention
+- **Copy Integration**: One-click secret code copying in admin UI
+
+### 📊 **Data Source Management**
+- **Multi-Step Wizard**: Guided configuration with validation at each step
+- **Schema-First**: Reusable field definitions across files and webhooks
+- **Auto-Generated Webhooks**: Paths, properties, and sample requests
+- **Real-Time Validation**: Immediate feedback with comprehensive error handling
+
+### 📈 **Monitoring & Analytics**
+- **Live Status**: File watchers, webhook endpoints, processing history
+- **Rule Execution**: Trigger events, reward fulfillment, audit trails
+- **Performance Tracking**: Processing times, success/failure rates
+- **Archive Management**: Soft-delete with purge options
+
+---
+
+## Rule Language
+
+### Syntax Examples
+
+```sql
+-- Simple point rewards
+WHEN transaction.amount > 50 THEN Point(100)
+
+-- Category-based with date conditions
+WHEN transaction.category = "grocery" AND transaction.date >= 2025-01-01 THEN Point(30)
+
+-- Complex logic with vouchers
+WHEN (transaction.amount > 100 OR customer.tier = "gold") AND transaction.active = true 
+     THEN Voucher(SUMMER25)
+
+-- String matching
+WHEN customer.email ENDS_WITH "@company.com" THEN Point(50)
+
+-- Boolean conditions
+WHEN transaction.verified = true AND transaction.amount > 20 THEN Point(25)
+```
+
+### Supported Features
+
+**Operators**: `>`, `<`, `>=`, `<=`, `=`, `!=`, `CONTAINS`, `STARTS_WITH`, `ENDS_WITH`
+**Logic**: `AND`, `OR`, parentheses for grouping
+**Types**: Numbers, dates (YYYY-MM-DD), strings, booleans
+**Rewards**: `Point(amount)`, `Voucher(code)` with auto-instance generation
+
+See [RULE_LANGUAGE.md](./RULE_LANGUAGE.md) for complete documentation.
 
 ---
 

@@ -45,6 +45,12 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<Voucher> findByCode(String code) {
+        return voucherRepository.findByCode(code);
+    }
+
+    @Override
     @Transactional
     public Voucher save(Voucher entity) {
         return voucherRepository.save(entity);

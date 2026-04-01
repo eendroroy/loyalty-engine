@@ -16,6 +16,9 @@ public interface RuleService {
     /** ACTIVE rules that have a non-null frequency (cron expression). */
     List<Rule> findAllActiveWithFrequency();
 
+    /** All rules with {@code ACTIVE} status — used by the rule evaluation engine. */
+    List<Rule> findAllActive();
+
     /** Update lastRunAt timestamp after a scheduled evaluation. */
     void updateLastRunAt(Long id);
 }

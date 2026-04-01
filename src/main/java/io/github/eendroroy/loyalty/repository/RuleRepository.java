@@ -22,6 +22,8 @@ public interface RuleRepository extends JpaRepository<Rule, Long>, JpaSpecificat
 
     List<Rule> findByStatusAndFrequencyIsNotNull(RuleStatus status);
 
+    List<Rule> findByStatus(RuleStatus status);
+
     @Modifying
     @Query("UPDATE Rule r SET r.lastRunAt = :timestamp WHERE r.id = :id")
     void updateLastRunAt(@Param("id") Long id, @Param("timestamp") LocalDateTime timestamp);

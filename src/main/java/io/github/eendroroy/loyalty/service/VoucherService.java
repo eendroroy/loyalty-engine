@@ -16,6 +16,9 @@ public interface VoucherService {
 
     Optional<Voucher> findById(Long id);
 
+    /** Finds a voucher by its public code. */
+    Optional<Voucher> findByCode(String code);
+
     Voucher save(Voucher entity);
 
     /**
