@@ -169,7 +169,17 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 
 ## Recent Updates
 
-### ✅ **v0.2.0 — Rule Language & Voucher Management** (Latest)
+### ✅ **v0.4.0 — Enhanced Visual Rule Builder & Production Ready Platform** (Latest)
+
+**Enhanced Visual Rule Builder**:
+- Dual-mode interface with seamless text/visual switching
+- Structured WHEN/THEN sections with clear visual hierarchy  
+- Three-column condition builder: Property → Operator → Value layout
+- Advanced grouping with expandable cards and parentheses support
+- Live voucher integration with availability tracking
+- Context-aware UI with field type-based operator filtering
+- Real-time expression preview with copy functionality
+- Mobile responsive design with full accessibility support
 
 **Complete Rule Language Engine**:
 - Natural `WHEN ... THEN ...` syntax with full parser and evaluator
@@ -179,7 +189,7 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 - Automatic reward fulfillment for points and vouchers
 - Event-driven evaluation on data ingestion
 
-**Voucher Management System**:
+**Dynamic Voucher Management System**:
 - Complete voucher lifecycle (create, edit, archive, purge)
 - Unique 7-character alphanumeric secret code generation
 - Capacity management with instance tracking
@@ -187,12 +197,13 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 - Copy-to-clipboard functionality for secret codes
 - Archive/active separation with comprehensive status tracking
 
-**Enhanced UI Experience**:
-- Live rule expression validation with visual feedback
-- Comprehensive syntax guide with examples and operator reference
-- Smart field insertion with auto-formatted `source.field` references
-- Debounced validation to prevent API spam
-- Enhanced error handling with detailed parse error messages
+**Enhanced Dashboard & UI System**:
+- Dual-mode design system (light/dark) with glassmorphism effects
+- Modern dashboard with 4 stat cards, trend indicators, and activity charts
+- Recharts integration with crimson gradient fills matching design aesthetic
+- Enhanced sidebar with gradient logo, version badge, and section labels
+- AppBar with glassmorphism blur, notification badges, and gradient avatars
+- Comprehensive MUI v6 theme system with custom component overrides
 
 ### ✅ **v0.1.0 — Enhanced Data Source Management**
 

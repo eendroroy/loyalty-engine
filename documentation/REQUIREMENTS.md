@@ -1,9 +1,9 @@
 # Technical Requirements Specification — Loyalty Management System
 
 **Document Type**: Technical Requirements Specification  
-**Version**: 2.0  
+**Version**: 4.0  
 **Date**: April 1, 2026  
-**Status**: Production Ready  
+**Status**: Production Ready (v0.4.0)  
 **Target Architecture**: Microservices with Event-Driven Architecture
 
 ---
@@ -2057,599 +2057,110 @@ npm run dev  # Development server on port 5173
 
 ---
 
-## Summary
+## Implementation Status (v0.4.0) — Production Ready ✅
 
-This comprehensive loyalty management system provides a complete solution for:
+### Fully Implemented and Production Ready
 
-- **Advanced Rule Engine**: Natural language syntax with live validation and type-aware evaluation
-- **Dynamic Voucher Management**: Complete lifecycle with unique code generation and auto-awarding
-- **Enhanced Data Sources**: Multi-step configuration with schema-first architecture
-- **Real-time Monitoring**: Live status tracking with comprehensive audit trails
+#### ✅ Core Backend Infrastructure
+- **Spring Boot 4.0.5** with Java 25 runtime
+- **PostgreSQL 15+** with full schema management via Hibernate DDL
+- **Complete REST API** with 8 admin controllers + webhook ingestion
+- **SpringDoc OpenAPI 2** documentation at `/swagger-ui.html`
+- **Global Exception Handling** with ProblemDetail responses
+- **Event-Driven Architecture** with 8+ Spring application events
+- **Transactional Isolation** with proper OSIV-off configuration
+- **MapStruct 1.6.3** entity-DTO mapping with Spring integration
 
-All core requirements have been **implemented and tested** ✅, providing a production-ready platform for sophisticated loyalty program management.
+#### ✅ Rule Language Engine (Complete)
+- **Recursive Descent Parser** with integrated lexer and AST evaluation
+- **Natural WHEN...THEN Syntax** supporting complex logical expressions
+- **Type-Aware Evaluation** for strings, numbers, dates, booleans
+- **Complex Logic Support** with AND/OR operators and parentheses grouping
+- **Live Expression Validation** via `/api/admin/rules/validate-expression`
+- **Automatic Reward Fulfillment** for both points and voucher awarding
+- **Event-Driven Evaluation** triggered by data ingestion events
+
+#### ✅ Voucher Management System (Complete)
+- **Complete CRUD Lifecycle** (create, edit, view, archive, purge)
+- **Unique Secret Code Generation** (7-character A-Z0-9, system-wide unique)
+- **Capacity Management** with instance tracking and conflict prevention
+- **Rule-Triggered Auto-Awarding** with transaction isolation
+- **Archive/Purge Separation** with comprehensive status tracking
+- **Copy-to-Clipboard UI** with visual feedback for secret codes
+
+#### ✅ Enhanced Data Source Management (Complete)
+- **Multi-Step Wizard Interface** (Details → Ingestion → Review)
+- **Schema-First Architecture** with auto-synced webhook properties
+- **File Upload + Webhook Ingestion** with metadata tracking
+- **Real-Time Validation** with immediate feedback
+- **Tabular Field Management** using MUI X DataGrid components
+- **Auto-Generated Webhook Paths** and sample request bodies
+- **Archive/Purge Lifecycle** with conflict detection
+- **File Watching Service** with reactive processing
+
+#### ✅ Enhanced Frontend Platform (v0.4.0)
+- **React 18 + TypeScript 5** with Vite 6 build system
+- **MUI v6 Component System** with comprehensive theme customization
+- **Dual-Mode Design System** (light/dark) with glassmorphism effects
+- **Enhanced Visual Rule Builder** with dual-mode editing (text + visual)
+- **Structured UI Components**: Three-column condition builder, expandable groups
+- **Live Validation Integration** with debounced API calls and visual feedback
+- **Modern Dashboard** with 4 stat cards, trend indicators, and Recharts integration
+- **Comprehensive Routing** covering all CRUD operations and workflows
+
+#### ✅ Modern UI/UX Enhancements (v0.4.0)
+- **Enhanced Dashboard**: Stat cards with gradient icons, trend badges, activity charts
+- **Glassmorphism AppBar**: Backdrop-blur effects with notification badges
+- **Enhanced Sidebar**: Gradient logo, version badges, section labels
+- **Context-Aware Components**: Field type-based operator filtering
+- **Mobile Responsive Design** with full accessibility support
+- **Copy-to-Clipboard Functionality** throughout the application
+- **Real-Time Expression Preview** with syntax highlighting
+
+#### ✅ Data Lineage & Metadata Tracking (Complete)
+- **Source Tracking**: Every record includes source metadata ("FILE:<filename>" or "HOOK:<producer>")
+- **Temporal Tracking**: `file_read_time` timestamp for exact ingestion time
+- **Destination Table Enhancement**: All tables automatically include metadata columns
+- **Complete Audit Trail**: Full traceability from raw data to processed records
+- **Type-Safe Integration**: Enhanced `IngestedRecord` model with metadata fields
+- **Modern JDBC**: Upgraded to Spring 6.1+ `JdbcClient` for performance
+
+### Planned Features (Not Yet Implemented)
+
+#### 🔄 Advanced Scheduling
+- `SCHEDULED` trigger type for periodic rule evaluation
+- `DataSourceScheduler` for automated data pulling
+- Cron-based scheduling configuration
+
+#### 🔄 Apache Kafka Integration
+- Producer/Consumer implementations for event streaming
+- Kafka-based inter-service communication
+- Event sourcing architecture enhancements
+
+#### 🔄 Security & Authentication
+- Spring Security integration
+- JWT-based authentication
+- Role-based authorization on admin endpoints
+- HMAC signature verification for webhook endpoints
+
+#### 🔄 Advanced Analytics
+- Member account integration for point crediting
+- Advanced reporting dashboards
+- Analytics and insights platform
+- Performance metrics and monitoring
+
+### Current System Capabilities
+
+**API Endpoints**: 50+ REST endpoints across 8 controllers
+**Database Tables**: 11 JPA entities with complete relationships
+**Frontend Pages**: 13 route-level components with full CRUD workflows
+**Rule Engine**: Complete parser with 9 AST node types
+**Events**: 8 Spring application events for reactive processing
+**Validation**: Live expression validation with comprehensive error handling
+**UI Components**: 20+ shared components with consistent design system
+
+**Build Status**: ✅ All tests pass, frontend builds successfully
+**Production Readiness**: ✅ Complete feature set for core loyalty management
+**Documentation Coverage**: ✅ Comprehensive technical and business documentation
 
 ---
-
-# 12. Implementation Details and Technical Patterns
-
-## 12.1 Rule Language Engine Implementation
-
-### AST Structure Implementation
-```java
-// Core AST classes in rule/ast/:
-public record ParsedRule(LogicalNode condition, RewardSpec reward) {}
-
-public sealed interface LogicalNode permits AndNode, OrNode, LeafNode {}
-
-public record AndNode(LogicalNode left, LogicalNode right) implements LogicalNode {}
-public record OrNode(LogicalNode left, LogicalNode right) implements LogicalNode {}
-public record LeafNode(Condition condition) implements LogicalNode {}
-
-public record Condition(FieldRef fieldRef, ComparisonOperator operator, String rawValue) {}
-public record FieldRef(String sourceName, String fieldName, FieldDataType dataType) {}
-public record RewardSpec(RewardType type, String value) {}
-```
-
-### Parser Implementation
-```java
-@Component
-@RequiredArgsConstructor
-public class RuleParser {
-    
-    public ParsedRule parse(String expression) throws RuleParseException {
-        // Tokenization and recursive descent parsing
-        TokenStream tokens = lexer(expression);
-        LogicalNode condition = parseWhenClause(tokens);
-        RewardSpec reward = parseThenClause(tokens);
-        return new ParsedRule(condition, reward);
-    }
-    
-    private TokenStream lexer(String expression) {
-        // Lexical analysis with token generation
-    }
-    
-    private LogicalNode parseWhenClause(TokenStream tokens) {
-        // Recursive descent parsing with operator precedence
-    }
-    
-    private RewardSpec parseThenClause(TokenStream tokens) {
-        // Reward specification parsing
-    }
-}
-```
-
-### Rule Evaluation Engine
-```java
-@Component
-@RequiredArgsConstructor
-public class RuleEvaluator {
-    
-    public boolean evaluate(LogicalNode condition, IngestedRecord record) {
-        return switch (condition) {
-            case AndNode and -> evaluate(and.left(), record) && evaluate(and.right(), record);
-            case OrNode or -> evaluate(or.left(), record) || evaluate(or.right(), record);
-            case LeafNode leaf -> evaluateCondition(leaf.condition(), record);
-        };
-    }
-    
-    private boolean evaluateCondition(Condition condition, IngestedRecord record) {
-        Object fieldValue = record.getField(condition.fieldRef().fullPath());
-        Object coercedValue = coerceType(condition.rawValue(), condition.fieldRef().dataType());
-        return condition.operator().apply(fieldValue, coercedValue);
-    }
-    
-    private Object coerceType(String value, FieldDataType targetType) {
-        return switch (targetType) {
-            case STRING -> value;
-            case INTEGER -> Long.parseLong(value);
-            case DECIMAL -> new BigDecimal(value);
-            case DATE -> LocalDate.parse(value);
-            case BOOLEAN -> Boolean.parseBoolean(value);
-        };
-    }
-}
-```
-
-## 12.2 Voucher Management Implementation
-
-### Entity Design Pattern
-```java
-@Entity
-@Getter @Setter
-@Table(name = "vouchers")
-public class Voucher extends BaseEntity {
-    
-    @Column(nullable = false)
-    private String name;
-    
-    @Column(nullable = false, unique = true)
-    private String code; // Public template code
-    
-    private String description;
-    
-    @Enumerated(EnumType.STRING)
-    private VoucherType voucherType = VoucherType.DISCOUNT;
-    
-    @Column(nullable = false)
-    private Integer count = 0; // Maximum instances
-    
-    @Column(nullable = false)
-    private Boolean active = true;
-    
-    @Column(nullable = false)
-    private Boolean archived = false;
-    
-    @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<VoucherInstance> instances = new ArrayList<>();
-    
-    // Business methods
-    public boolean canAward() {
-        return active && !archived && instances.size() < count;
-    }
-    
-    public int getRemainingCount() {
-        return Math.max(0, count - instances.size());
-    }
-}
-
-@Entity
-@Getter @Setter
-@Table(name = "voucher_instances")
-public class VoucherInstance extends BaseEntity {
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voucher_id", nullable = false)
-    private Voucher voucher;
-    
-    @Column(name = "secret_code", nullable = false, unique = true, length = 7)
-    private String secretCode; // 7-char A-Z0-9
-    
-    // Validation constraint
-    @PrePersist
-    @PreUpdate
-    private void validateSecretCode() {
-        if (secretCode == null || !secretCode.matches("^[A-Z0-9]{7}$")) {
-            throw new IllegalStateException("Secret code must be 7 alphanumeric characters");
-        }
-    }
-}
-```
-
-### Secret Code Generation Algorithm
-```java
-@Service
-@RequiredArgsConstructor
-public class VoucherServiceImpl implements VoucherService {
-    
-    private static final int MAX_GENERATION_ATTEMPTS = 20;
-    private static final String CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int CODE_LENGTH = 7;
-    
-    private final SecureRandom secureRandom = new SecureRandom();
-    private final VoucherRepository voucherRepository;
-    private final VoucherInstanceRepository voucherInstanceRepository;
-    
-    @Transactional
-    public VoucherInstance award(Long voucherId) {
-        Voucher voucher = voucherRepository.findByIdWithInstances(voucherId)
-            .orElseThrow(() -> new EntityNotFoundException("Voucher not found"));
-            
-        if (!voucher.canAward()) {
-            throw new IllegalStateException("Voucher cannot be awarded: " + 
-                (voucher.getRemainingCount() == 0 ? "capacity exceeded" : "inactive"));
-        }
-        
-        VoucherInstance instance = new VoucherInstance();
-        instance.setVoucher(voucher);
-        instance.setSecretCode(generateUniqueSecretCode());
-        
-        return voucherInstanceRepository.save(instance);
-    }
-    
-    private String generateUniqueSecretCode() {
-        for (int attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
-            String code = generateRandomCode();
-            if (!voucherInstanceRepository.existsBySecretCode(code)) {
-                return code;
-            }
-        }
-        throw new IllegalStateException("Failed to generate unique secret code after " + 
-            MAX_GENERATION_ATTEMPTS + " attempts");
-    }
-    
-    private String generateRandomCode() {
-        StringBuilder code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = secureRandom.nextInt(CODE_ALPHABET.length());
-            code.append(CODE_ALPHABET.charAt(index));
-        }
-        return code.toString();
-    }
-}
-```
-
-## 12.3 Frontend Component Architecture
-
-### React Component Patterns
-```typescript
-// Enhanced Visual Rule Builder Component
-interface RuleBuilderProps {
-  metadata: Metadata | null;
-  initialExpression?: string;
-  onExpressionChange: (expression: string) => void;
-}
-
-const RuleBuilder: React.FC<RuleBuilderProps> = ({ 
-  metadata, 
-  initialExpression, 
-  onExpressionChange 
-}) => {
-  const [conditionGroups, setConditionGroups] = useState<ConditionGroup[]>([
-    { id: '1', conditions: [{ id: '1', property: '', operator: '', value: '' }], logic: 'AND' }
-  ]);
-  const [reward, setReward] = useState<Reward>({ type: 'POINT', value: '' });
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
-  
-  // Load active vouchers for dropdown
-  useEffect(() => {
-    getVouchers().then(response => 
-      setVouchers(response.data.filter(v => v.active && !v.archived))
-    );
-  }, []);
-  
-  // Generate expression from visual components
-  const generateExpression = useCallback((): string => {
-    if (conditionGroups.length === 0 || !reward.type || !reward.value) return '';
-    
-    const whenClauses = conditionGroups
-      .filter(group => group.conditions.some(c => c.property && c.operator && c.value))
-      .map(group => {
-        const groupConditions = group.conditions
-          .filter(c => c.property && c.operator && c.value)
-          .map(c => `${c.property} ${c.operator} ${formatValue(c.value, getFieldType(c.property))}`);
-        
-        if (groupConditions.length === 0) return '';
-        if (groupConditions.length === 1) return groupConditions[0];
-        
-        return `(${groupConditions.join(` ${group.logic} `)})`;
-      })
-      .filter(Boolean);
-    
-    if (whenClauses.length === 0) return '';
-    
-    const whenClause = whenClauses.length === 1 ? whenClauses[0] : whenClauses.join(' OR ');
-    const thenClause = reward.type === 'POINT' ? `Point(${reward.value})` : `Voucher(${reward.value})`;
-    
-    return `WHEN ${whenClause} THEN ${thenClause}`;
-  }, [conditionGroups, reward, metadata]);
-  
-  // Update expression when components change
-  useEffect(() => {
-    const expression = generateExpression();
-    onExpressionChange(expression);
-  }, [generateExpression, onExpressionChange]);
-  
-  // Component rendering with structured WHEN/THEN sections
-  return (
-    <Box>
-      {/* Rule Expression Preview */}
-      <Card sx={{ mb: 3, p: 2, bgcolor: 'primary.50' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Generated Rule Expression
-          </Typography>
-          <IconButton onClick={() => handleCopyExpression(generateExpression())}>
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Typography 
-          variant="body1" 
-          sx={{ 
-            fontFamily: 'monospace', 
-            mt: 1, 
-            p: 1, 
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 1,
-            minHeight: '2em',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          {generateExpression() || 'Configure conditions and reward to see rule expression...'}
-        </Typography>
-      </Card>
-      
-      {/* WHEN Section */}
-      <Card sx={{ mb: 3 }}>
-        <CardHeader 
-          title={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="WHEN" color="primary" size="small" />
-              <Typography variant="h6">Conditions</Typography>
-            </Box>
-          }
-          sx={{ pb: 1 }}
-        />
-        <CardContent>
-          {/* Condition Groups */}
-          {conditionGroups.map((group, groupIndex) => (
-            <ConditionGroup
-              key={group.id}
-              group={group}
-              groupIndex={groupIndex}
-              metadata={metadata}
-              onUpdateGroup={handleUpdateGroup}
-              onRemoveGroup={handleRemoveGroup}
-              showGroupConnector={groupIndex < conditionGroups.length - 1}
-            />
-          ))}
-          
-          <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={handleAddGroup}
-            sx={{ mt: 2 }}
-          >
-            Add Condition Group
-          </Button>
-        </CardContent>
-      </Card>
-      
-      {/* THEN Section */}
-      <Card>
-        <CardHeader 
-          title={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="THEN" color="secondary" size="small" />
-              <Typography variant="h6">Reward</Typography>
-            </Box>
-          }
-          sx={{ pb: 1 }}
-        />
-        <CardContent>
-          <RewardBuilder
-            reward={reward}
-            vouchers={vouchers}
-            onRewardChange={setReward}
-          />
-        </CardContent>
-      </Card>
-    </Box>
-  );
-};
-```
-
-### Dual-Mode Rule Form Integration
-```typescript
-const RuleForm: React.FC = () => {
-  const [ruleEditorMode, setRuleEditorMode] = useState<'text' | 'visual'>('text');
-  const [form, setForm] = useState(EMPTY_RULE);
-  const [metadata, setMetadata] = useState<Metadata | null>(null);
-  const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  
-  // Load metadata for field references
-  useEffect(() => {
-    getMetadata().then(response => setMetadata(response.data));
-  }, []);
-  
-  // Live expression validation with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (form.ruleExpression?.trim()) {
-        setValidating(true);
-        validateExpression(form.ruleExpression)
-          .then(response => setValidationResult(response.data))
-          .catch(() => setValidationResult({ valid: false, error: 'Validation failed' }))
-          .finally(() => setValidating(false));
-      } else {
-        setValidationResult(null);
-      }
-    }, 800); // 800ms debounce
-    
-    return () => clearTimeout(timer);
-  }, [form.ruleExpression]);
-  
-  const handleExpressionChange = (expression: string) => {
-    setForm(prev => ({ ...prev, ruleExpression: expression }));
-  };
-  
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Rule Editor Mode Toggle */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Rule Expression *
-        </Typography>
-        <ToggleButtonGroup
-          value={ruleEditorMode}
-          exclusive
-          onChange={(_, newMode) => newMode && setRuleEditorMode(newMode)}
-          size="small"
-        >
-          <ToggleButton value="text">
-            <CodeRoundedIcon fontSize="small" sx={{ mr: 1 }} />
-            Text Editor
-          </ToggleButton>
-          <ToggleButton value="visual">
-            <BuildRoundedIcon fontSize="small" sx={{ mr: 1 }} />
-            Visual Builder
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-      
-      {/* Conditional Rendering Based on Mode */}
-      {ruleEditorMode === 'text' ? (
-        <>
-          <TextField
-            fullWidth
-            multiline
-            rows={6}
-            required
-            label="Rule Expression"
-            value={form.ruleExpression}
-            onChange={(e) => handleExpressionChange(e.target.value)}
-            error={validationResult?.valid === false}
-            helperText={getValidationHelperText()}
-            inputProps={{
-              style: { fontFamily: 'monospace', fontSize: '0.85rem' }
-            }}
-            sx={{
-              '& .MuiInputBase-root': {
-                backgroundColor: getValidationBackgroundColor()
-              }
-            }}
-          />
-          <SyntaxGuide />
-          <FieldBrowser metadata={metadata} onInsert={handleInsertField} />
-        </>
-      ) : (
-        <RuleBuilder
-          metadata={metadata}
-          initialExpression={form.ruleExpression}
-          onExpressionChange={handleExpressionChange}
-        />
-      )}
-      
-      {/* Validation Status for Visual Mode */}
-      {ruleEditorMode === 'visual' && (
-        <ValidationStatus 
-          validating={validating} 
-          validationResult={validationResult} 
-        />
-      )}
-    </form>
-  );
-};
-```
-
-## 12.4 Event-Driven Processing Implementation
-
-### Event Publishing Pattern
-```java
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class RuleEvaluationServiceImpl implements RuleEvaluationService {
-    
-    private final RuleRepository ruleRepository;
-    private final RuleEvaluator ruleEvaluator;
-    private final VoucherService voucherService;
-    private final ApplicationEventPublisher eventPublisher;
-    
-    @EventListener
-    @Async("ruleEvaluationExecutor")
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleDataPulled(DataPulledEvent event) {
-        List<Rule> activeRules = ruleRepository.findByStatus(RuleStatus.ACTIVE);
-        
-        for (IngestedRecord record : event.records()) {
-            for (Rule rule : activeRules) {
-                try {
-                    evaluateRuleForRecord(rule, record);
-                } catch (Exception ex) {
-                    log.error("Rule evaluation failed for rule {} and record {}", 
-                        rule.getId(), record.getTransactionId(), ex);
-                }
-            }
-        }
-    }
-    
-    private void evaluateRuleForRecord(Rule rule, IngestedRecord record) {
-        try {
-            ParsedRule parsedRule = ruleParser.parse(rule.getRuleExpression());
-            boolean matches = ruleEvaluator.evaluate(parsedRule.condition(), record);
-            
-            if (matches) {
-                fulfillReward(rule, parsedRule.reward(), record);
-                publishRuleTriggered(rule, record, parsedRule.reward());
-            }
-        } catch (RuleParseException ex) {
-            log.warn("Invalid rule expression for rule {}: {}", rule.getId(), ex.getMessage());
-        }
-    }
-    
-    private void fulfillReward(Rule rule, RewardSpec reward, IngestedRecord record) {
-        switch (reward.type()) {
-            case POINT -> {
-                int points = Integer.parseInt(reward.value());
-                // Award points (implementation depends on customer service)
-                log.info("Awarded {} points for rule {} to customer {}", 
-                    points, rule.getId(), record.getCustomerId());
-            }
-            case VOUCHER -> {
-                Optional<Voucher> voucher = voucherService.findByCode(reward.value());
-                if (voucher.isPresent()) {
-                    VoucherInstance instance = voucherService.award(voucher.get().getId());
-                    log.info("Awarded voucher {} (secret: {}) for rule {} to customer {}", 
-                        voucher.get().getCode(), instance.getSecretCode(), 
-                        rule.getId(), record.getCustomerId());
-                }
-            }
-        }
-    }
-    
-    private void publishRuleTriggered(Rule rule, IngestedRecord record, RewardSpec reward) {
-        RuleTriggeredEvent event = new RuleTriggeredEvent(
-            rule.getId(),
-            rule.getName(),
-            record,
-            reward.type(),
-            reward.value(),
-            Instant.now(),
-            record.getCorrelationId()
-        );
-        eventPublisher.publishEvent(event);
-    }
-}
-```
-
-### Database Optimization Patterns
-```sql
--- Performance indexes for rule evaluation
-CREATE INDEX CONCURRENTLY idx_rules_status_priority 
-    ON rules(status, priority DESC) 
-    WHERE status = 'ACTIVE';
-
-CREATE INDEX CONCURRENTLY idx_rules_active_date_range 
-    ON rules(active_from, active_to) 
-    WHERE active_from IS NOT NULL OR active_to IS NOT NULL;
-
--- Voucher capacity tracking optimization
-CREATE INDEX CONCURRENTLY idx_voucher_instances_voucher_id_created 
-    ON voucher_instances(voucher_id, created_at DESC);
-
--- Unique constraint with partial index for better performance
-CREATE UNIQUE INDEX CONCURRENTLY idx_voucher_instances_secret_code_unique 
-    ON voucher_instances(secret_code) 
-    WHERE secret_code IS NOT NULL;
-
--- Function for real-time capacity checking
-CREATE OR REPLACE FUNCTION check_voucher_capacity()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM 1 FROM vouchers v 
-    WHERE v.id = NEW.voucher_id 
-      AND v.active = true 
-      AND v.archived = false
-      AND (
-          SELECT COUNT(*) 
-          FROM voucher_instances vi 
-          WHERE vi.voucher_id = NEW.voucher_id
-      ) < v.count;
-    
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Voucher capacity exceeded or voucher not available';
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_check_voucher_capacity
-    BEFORE INSERT ON voucher_instances
-    FOR EACH ROW EXECUTE FUNCTION check_voucher_capacity();
-```
-

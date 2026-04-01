@@ -558,11 +558,11 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 
 ---
 
-## Current Status (v0.3.0) — Production Ready ✅
+## Current Status (v0.4.0) — Production Ready ✅
 
 ### Enhanced Visual Rule Builder & Complete Platform
 
-**Enhanced Visual Rule Builder (v0.3.0)**:
+**Enhanced Visual Rule Builder (v0.4.0)**:
 - Dual-mode interface with seamless text/visual switching
 - Structured WHEN/THEN sections with clear visual hierarchy  
 - Three-column condition builder: Property → Operator → Value
@@ -587,6 +587,18 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 - Auto-awarding through rule triggers with conflict prevention
 - Copy-to-clipboard functionality for secret codes
 - Archive/active separation with comprehensive status tracking
+
+**Enhanced Dashboard & UI System (v0.4.0)**:
+- Dual-mode design system with glassmorphism AppBar and backdrop-blur effects
+- Modern dashboard with 4 stat cards featuring gradient icon bubbles and trend badges
+- Recharts AreaChart integration with red gradient fills matching dashboard aesthetic
+- Activity Feed panel with colored status dots and Rule Health progress bars
+- Enhanced sidebar with gradient brand logo, version badges, and "Main Menu" section labels
+- AppBar with glassmorphism blur, notification badges, and gradient avatars with hover scaling
+- PageHeader component with subtitle support, secondary actions, and NavigateNext breadcrumb separators
+- Custom MUI v6 theme overrides for Chips, TableCells, Tooltips, Dialogs, and ToggleButtons
+- Light theme: soft blue-grey canvas (#F1F4F9), white cards, vivid crimson accents
+- Dark theme: near-black navy canvas (#0B0C12), dark charcoal cards (#14151F), vivid crimson (#E53935)
 
 **Enhanced UI Experience**:
 - Live rule expression validation with visual feedback
