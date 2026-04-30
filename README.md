@@ -109,7 +109,7 @@ WHEN (transaction.amount > 100 OR customer.tier = "gold") THEN Voucher(SUMMER25)
                                 │
           ┌─────────────────────┼─────────────────────┐
           │                     │                     │
-┌─────────▼───────┐   ┌─────────▼────────┐   ┌───────▼────────┐
+┌─────────▼───────┐   ┌─────────▼────────┐   ┌────────▼───────┐
 │ Point Rewards   │   │ Voucher Awards   │   │ Event Logging  │
 │ (Accumulation)  │   │ (Secret Codes)   │   │ (Audit Trail)  │
 └─────────────────┘   └──────────────────┘   └────────────────┘
