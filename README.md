@@ -132,10 +132,10 @@ loyalty/
 │   ├── pages/           # Route components
 │   └── types/           # TypeScript definitions
 ├── documentation/       # Project documentation
-│   ├── BRD.md          # Business requirements
+│   ├── BRD.md           # Business requirements
 │   ├── REQUIREMENTS.md  # Technical specifications
 │   └── diagrams/        # Technical diagrams
-└── README.md           # This file
+└── README.md            # This file
 ```
 
 ## 🔧 Development
