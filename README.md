@@ -1,5 +1,7 @@
 # Loyalty Management System
 
+## _NOTE:_ This is an experimental project (work in progress), 100% of the codebase is generated using AI agents by feeding the conceptual ideas
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
