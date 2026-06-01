@@ -1,0 +1,13 @@
+[tools]
+# Backend runtime from pom.xml <java.version>
+java = "temurin-25"
+
+# Maven version from pom.xml <maven.version>
+maven = "3.9"
+
+# Node.js version from existing .tool-versions
+node = "25"
+
+# npm version from frontend-maven-plugin configuration
+npm = "10.9.2"
+

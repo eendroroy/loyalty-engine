@@ -32,6 +32,7 @@ A comprehensive loyalty management platform with rule-based reward automation, v
 ## 📋 Quick Start
 
 ### Prerequisites
+- mise (optional, recommended for auto-installing pinned tool versions)
 - Java 25+
 - Node.js 18+
 - PostgreSQL 15+
@@ -42,6 +43,9 @@ A comprehensive loyalty management platform with rule-based reward automation, v
 # Clone the repository
 git clone git@github.com:eendroroy/loyalty.git
 cd loyalty
+
+# Optional: install pinned runtime tools from .mise.toml
+mise install
 
 # Configure database
 cp src/main/resources/application.example.yaml src/main/resources/application.yaml

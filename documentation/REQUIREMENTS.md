@@ -1990,6 +1990,7 @@ logging:
 ## 10.4 Build and Setup Instructions
 
 ### Prerequisites
+- mise (optional, recommended for reproducible local tool versions)
 - Java 25+ (OpenJDK recommended)
 - Node.js 18+ and npm 8+
 - PostgreSQL 15+
@@ -2000,6 +2001,9 @@ logging:
 # Clone repository
 git clone <repository-url>
 cd loyalty
+
+# Optional: install pinned toolchain from .mise.toml
+mise install
 
 # Database setup
 createdb loyalty
