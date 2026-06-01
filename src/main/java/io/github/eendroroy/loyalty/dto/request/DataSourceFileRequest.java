@@ -35,6 +35,14 @@ public class DataSourceFileRequest {
             example = "0")
     private Integer skipFirstNLines;
 
+    @Schema(
+            description = "Optional absolute path to a directory where successfully imported files are moved after ingestion. "
+                    + "The file is renamed with a timestamp suffix to prevent collisions. "
+                    + "Leave blank to keep files in place.",
+            example = "/data/txn/archive"
+    )
+    private String archiveDirectory;
+
     @Schema(description = "Field schema definitions for this file. "
             + "On PUT replaces all existing fields when non-null.")
     @Valid

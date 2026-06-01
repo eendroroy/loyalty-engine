@@ -19,6 +19,7 @@ public class DataSourceFileResponse {
     private String quoteCharacter;
     private String lineSeparator;
     private Integer skipFirstNLines;
+    private String archiveDirectory;
     private List<DataSourceFieldResponse> fields;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

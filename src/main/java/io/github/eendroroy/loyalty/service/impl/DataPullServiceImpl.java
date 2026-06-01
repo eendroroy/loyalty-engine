@@ -21,8 +21,10 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -96,8 +98,41 @@ public class DataPullServiceImpl implements DataPullService {
         // Finalise the log row
         fileProcessingLogService.finaliseLog(logEntry.getId(), result);
 
+        // Archive the file on success (if an archive directory is configured)
+        if (result.errors() == 0 && fileConfig.getArchiveDirectory() != null
+                && !fileConfig.getArchiveDirectory().isBlank()) {
+            archiveFile(actualPath, fileConfig.getArchiveDirectory());
+        }
 
         return result;
+    }
+
+    // ── Archive helper ────────────────────────────────────────────────────────
+
+    /**
+     * Moves {@code source} into {@code archiveDir}, renaming it with a timestamp
+     * suffix so that repeated imports of the same file name never collide.
+     *
+     * <p>Example: {@code feed.csv} → {@code feed_20260601T143022.csv}
+     */
+    private void archiveFile(Path source, String archiveDir) {
+        try {
+            var targetDir = Paths.get(archiveDir);
+            Files.createDirectories(targetDir);
+
+            var original  = source.getFileName().toString();
+            var timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss"));
+            var dotIdx    = original.lastIndexOf('.');
+            var archived  = dotIdx >= 0
+                    ? original.substring(0, dotIdx) + "_" + timestamp + original.substring(dotIdx)
+                    : original + "_" + timestamp;
+
+            var destination = targetDir.resolve(archived);
+            Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE);
+            log.info("Archived '{}' → '{}'", source, destination);
+        } catch (IOException e) {
+            log.warn("Failed to archive '{}' to '{}': {}", source, archiveDir, e.getMessage());
+        }
     }
 
 
@@ -167,14 +202,14 @@ public class DataPullServiceImpl implements DataPullService {
                             int idx = field.getColumnNumber() - 1;
                             if (idx < row.size()) {
                                 var raw = row.get(idx);
-                                rowData.put(field.getFieldAlias(), coerce(raw, field.getDataType()));
+                                rowData.put(field.getFieldAlias(), coerce(raw, field.getDataType(), field.getDateFormat()));
                                 if (raw != null && !raw.isBlank()) hasValue = true;
                             }
                         }
                         for (var field : namedFields) {
                             try {
                                 var raw = row.get(field.getFieldName());
-                                rowData.put(field.getFieldAlias(), coerce(raw, field.getDataType()));
+                                rowData.put(field.getFieldAlias(), coerce(raw, field.getDataType(), field.getDateFormat()));
                                 if (raw != null && !raw.isBlank()) hasValue = true;
                             } catch (IllegalArgumentException ignored) { /* header absent */ }
                         }
@@ -212,13 +247,19 @@ public class DataPullServiceImpl implements DataPullService {
 
     // ── Type coercion ─────────────────────────────────────────────────────────
 
-    private Object coerce(String raw, FieldDataType type) {
+    private Object coerce(String raw, FieldDataType type, String dateFormat) {
         if (raw == null || raw.isBlank()) return null;
         var v = raw.trim();
         return switch (type) {
             case INTEGER -> Long.parseLong(v);
             case DECIMAL -> new BigDecimal(v);
-            case DATE    -> LocalDate.parse(v);
+            case DATE    -> {
+                if (dateFormat != null && !dateFormat.isBlank()) {
+                    yield LocalDate.parse(v, DateTimeFormatter.ofPattern(dateFormat));
+                } else {
+                    yield LocalDate.parse(v); // default: ISO-8601 (yyyy-MM-dd)
+                }
+            }
             case BOOLEAN -> Boolean.parseBoolean(v);
             case STRING  -> v;
         };

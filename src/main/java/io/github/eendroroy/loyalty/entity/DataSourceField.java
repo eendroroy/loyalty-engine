@@ -72,6 +72,15 @@ public class DataSourceField {
     @Column(name = "data_type", nullable = false)
     private FieldDataType dataType;
 
+    /**
+     * Optional date format pattern in standard Java {@link java.time.format.DateTimeFormatter}
+     * syntax (e.g. {@code dd/MM/yyyy}, {@code MM-dd-yyyy}).
+     * Only relevant when {@link #dataType} is {@code DATE}.
+     * When {@code null} the ISO-8601 format ({@code yyyy-MM-dd}) is assumed.
+     */
+    @Column(name = "date_format")
+    private String dateFormat;
+
     /** Human-readable description shown as a hint in the rule-expression autocomplete UI. */
     @Column(columnDefinition = "TEXT")
     private String description;

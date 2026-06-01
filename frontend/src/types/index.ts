@@ -67,6 +67,8 @@ export interface DataSourceField {
   fieldAlias: string;
   columnNumber?: number;
   dataType: FieldDataType;
+  /** Java DateTimeFormatter pattern (e.g. "dd/MM/yyyy"). Only used when dataType is DATE. */
+  dateFormat?: string;
   description?: string;
 }
 
@@ -78,6 +80,8 @@ export interface DataSourceFile {
   quoteCharacter?: string;
   lineSeparator?: string;
   skipFirstNLines?: number;
+  /** Optional directory to move the file into after successful ingestion. */
+  archiveDirectory?: string;
   fields?: DataSourceField[];
   createdAt?: string;
   updatedAt?: string;

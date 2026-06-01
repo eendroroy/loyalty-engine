@@ -8,14 +8,16 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
-import AddRoundedIcon        from '@mui/icons-material/AddRounded';
-import EditRoundedIcon       from '@mui/icons-material/EditRounded';
-import DeleteRoundedIcon     from '@mui/icons-material/DeleteRounded';
-import SaveRoundedIcon       from '@mui/icons-material/SaveRounded';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import FolderRoundedIcon     from '@mui/icons-material/FolderRounded';
-import WebhookRoundedIcon    from '@mui/icons-material/WebhookRounded';
-import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
+import AddRoundedIcon          from '@mui/icons-material/AddRounded';
+import EditRoundedIcon         from '@mui/icons-material/EditRounded';
+import DeleteRoundedIcon       from '@mui/icons-material/DeleteRounded';
+import SaveRoundedIcon         from '@mui/icons-material/SaveRounded';
+import ExpandMoreRoundedIcon   from '@mui/icons-material/ExpandMoreRounded';
+import FolderRoundedIcon       from '@mui/icons-material/FolderRounded';
+import WebhookRoundedIcon      from '@mui/icons-material/WebhookRounded';
+import TableChartRoundedIcon   from '@mui/icons-material/TableChartRounded';
+import VisibilityRoundedIcon   from '@mui/icons-material/VisibilityRounded';
+
 import PageHeader    from '../components/PageHeader';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
@@ -37,11 +39,11 @@ interface WebhookForm { enabled: boolean; description: string };  // enabled fla
 const EMPTY_SOURCE: SourceForm              = { name: '', description: '', destinationTable: '' };
 const EMPTY_SCHEMA_FIELD: SchemaFieldPayload = { name: '', description: '', dataType: 'STRING' };
 const EMPTY_FIELD: FieldPayload             = {
-  fieldName: '', fieldAlias: '', dataType: 'STRING', columnNumber: undefined, description: '',
+  fieldName: '', fieldAlias: '', dataType: 'STRING', columnNumber: undefined, description: '', dateFormat: '',
 };
 const EMPTY_FILE: FilePayload = {
   filePath: '', description: '', fieldSeparator: '', quoteCharacter: '',
-  lineSeparator: '', skipFirstNLines: 0, fields: [],
+  lineSeparator: '', skipFirstNLines: 0, archiveDirectory: '', fields: [],
 };
 const EMPTY_WEBHOOK: WebhookForm = { enabled: false, description: '' };
 
@@ -103,7 +105,11 @@ export default function DataSourceForm({ readOnly = false }: Props) {
             quoteCharacter: fp.quoteCharacter ?? '',
             lineSeparator:  fp.lineSeparator  ?? '',
             skipFirstNLines: fp.skipFirstNLines ?? 0,
-            fields: (fileFields ?? []).map(({ id: _fid2, ...field }: DataSourceField) => field as FieldPayload),
+            archiveDirectory: fp.archiveDirectory ?? '',
+            fields: (fileFields ?? []).map(({ id: _fid2, ...field }: DataSourceField) => ({
+              ...field,
+              dateFormat: field.dateFormat ?? '',
+            } as FieldPayload)),
           } as FilePayload))
         );
         setWebhook({ enabled: wh?.enabled ?? false, description: wh?.description ?? '' });
@@ -122,11 +128,15 @@ export default function DataSourceForm({ readOnly = false }: Props) {
         fields: schemaFields.length ? schemaFields.map((f) => ({ name: f.name, dataType: f.dataType, description: f.description || undefined })) : undefined,
         files: files.map((f) => ({
           ...f,
-          fieldSeparator: f.fieldSeparator || undefined,
-          quoteCharacter: f.quoteCharacter || undefined,
-          lineSeparator:  f.lineSeparator  || undefined,
-          skipFirstNLines: f.skipFirstNLines || undefined,
-          fields: f.fields?.length ? f.fields : undefined,
+          fieldSeparator:   f.fieldSeparator   || undefined,
+          quoteCharacter:   f.quoteCharacter   || undefined,
+          lineSeparator:    f.lineSeparator    || undefined,
+          skipFirstNLines:  f.skipFirstNLines  || undefined,
+          archiveDirectory: f.archiveDirectory || undefined,
+          fields: f.fields?.length ? f.fields.map((field) => ({
+            ...field,
+            dateFormat: field.dateFormat || undefined,
+          })) : undefined,
         })),
         webhook: { enabled: webhook.enabled, description: webhook.description || undefined },
       };
@@ -186,11 +196,20 @@ export default function DataSourceForm({ readOnly = false }: Props) {
     { field: 'fieldName', headerName: 'Source Field', flex: 1, minWidth: 100 },
     { field: 'dataType', headerName: 'Src Type', width: 90,
       renderCell: ({ value }: GridRenderCellParams) => <Chip label={value} size="small" color={DATA_TYPE_COLOR[value] ?? 'default'} variant="outlined" /> },
-    { field: '_a', headerName: '', width: 80, sortable: false,
+    { field: 'dateFormat', headerName: 'Date Format', width: 130,
+      renderCell: ({ value, row }: GridRenderCellParams) => row.dataType === 'DATE'
+        ? (value ? <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'warning.main' }}>{value}</Typography>
+                 : <Typography variant="caption" color="text.disabled">ISO-8601</Typography>)
+        : <Typography variant="caption" color="text.disabled">—</Typography> },
+    { field: '_a', headerName: '', width: readOnly ? 48 : 80, sortable: false,
       renderCell: ({ row }: GridRenderCellParams) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEditFf(row._idx)}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Remove"><IconButton size="small" color="error" onClick={() => setDeleteFfIdx(row._idx)}><DeleteRoundedIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title={readOnly ? 'View' : 'Edit'}>
+            <IconButton size="small" onClick={() => openEditFf(row._idx)}>
+              {readOnly ? <VisibilityRoundedIcon fontSize="small" /> : <EditRoundedIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          {!readOnly && <Tooltip title="Remove"><IconButton size="small" color="error" onClick={() => setDeleteFfIdx(row._idx)}><DeleteRoundedIcon fontSize="small" /></IconButton></Tooltip>}
         </Box>
       ) },
   ];
@@ -199,13 +218,17 @@ export default function DataSourceForm({ readOnly = false }: Props) {
     { field: 'filePath', headerName: 'Directory / Path', flex: 2, minWidth: 200,
       renderCell: ({ value }: GridRenderCellParams) => <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{value}</Typography> },
     { field: 'description', headerName: 'Description', flex: 1.5, minWidth: 100 },
+    { field: 'archiveDirectory', headerName: 'Archive Dir', flex: 1.5, minWidth: 120,
+      renderCell: ({ value }: GridRenderCellParams) => value
+        ? <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>{value}</Typography>
+        : <Typography variant="caption" color="text.disabled">—</Typography> },
     { field: 'fields', headerName: 'Fields', width: 80, sortable: false,
       renderCell: ({ value }: GridRenderCellParams) => { const c = Array.isArray(value) ? value.length : 0; return c > 0 ? <Chip label={c} size="small" color="info" variant="outlined" /> : <Typography variant="caption" color="text.disabled">—</Typography>; } },
-    { field: '_a', headerName: '', width: 80, sortable: false,
+    { field: '_a', headerName: '', width: readOnly ? 48 : 80, sortable: false,
       renderCell: ({ row }: GridRenderCellParams) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEditFile(row._idx)}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Remove"><IconButton size="small" color="error" onClick={() => setDeleteFileIdx(row._idx)}><DeleteRoundedIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title={readOnly ? 'View' : 'Edit'}><IconButton size="small" onClick={() => openEditFile(row._idx)}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
+          {!readOnly && <Tooltip title="Remove"><IconButton size="small" color="error" onClick={() => setDeleteFileIdx(row._idx)}><DeleteRoundedIcon fontSize="small" /></IconButton></Tooltip>}
         </Box>
       ) },
   ];
@@ -493,39 +516,45 @@ export default function DataSourceForm({ readOnly = false }: Props) {
 
       {/* File Dialog */}
       <Dialog open={fileDialog} onClose={() => setFileDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editFileIdx !== null ? 'Edit File' : 'Add File Path'}</DialogTitle>
+        <DialogTitle>{readOnly ? 'View File' : (editFileIdx !== null ? 'Edit File' : 'Add File Path')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid size={{ xs: 12 }}>
-              <TextField fullWidth required label="File Directory / Path" value={fileForm.filePath}
+              <TextField fullWidth required label="File Directory / Path" value={fileForm.filePath} disabled={readOnly}
                 onChange={(e) => setFileForm((p) => ({ ...p, filePath: e.target.value }))}
                 helperText="Unique system-wide absolute path to the file or directory (e.g. /data/txn/feed.csv)"
                 slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField fullWidth label="Description" value={fileForm.description ?? ''}
+              <TextField fullWidth label="Description" value={fileForm.description ?? ''} disabled={readOnly}
                 onChange={(e) => setFileForm((p) => ({ ...p, description: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField fullWidth label="Archive Directory" value={fileForm.archiveDirectory ?? ''} disabled={readOnly}
+                onChange={(e) => setFileForm((p) => ({ ...p, archiveDirectory: e.target.value }))}
+                helperText="Optional. Absolute path to move successfully imported files into (e.g. /data/txn/archive). Files are renamed with a timestamp suffix."
+                slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
           </Grid>
           <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 2, mb: 1 }}>CSV Parsing Options</Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField fullWidth label="Field Separator" value={fileForm.fieldSeparator ?? ''}
+              <TextField fullWidth label="Field Separator" value={fileForm.fieldSeparator ?? ''} disabled={readOnly}
                 onChange={(e) => setFileForm((p) => ({ ...p, fieldSeparator: e.target.value }))}
                 helperText='Default: ","' slotProps={{ htmlInput: { maxLength: 4 }, input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField fullWidth label="Quote Character" value={fileForm.quoteCharacter ?? ''}
+              <TextField fullWidth label="Quote Character" value={fileForm.quoteCharacter ?? ''} disabled={readOnly}
                 onChange={(e) => setFileForm((p) => ({ ...p, quoteCharacter: e.target.value }))}
                 helperText='Default: &quot;"&quot;' slotProps={{ htmlInput: { maxLength: 4 }, input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField fullWidth label="Line Separator" value={fileForm.lineSeparator ?? ''}
+              <TextField fullWidth label="Line Separator" value={fileForm.lineSeparator ?? ''} disabled={readOnly}
                 onChange={(e) => setFileForm((p) => ({ ...p, lineSeparator: e.target.value }))}
                 helperText="Default: auto-detect" slotProps={{ htmlInput: { maxLength: 4 }, input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField fullWidth type="number" label="Skip First N Lines"
+              <TextField fullWidth type="number" label="Skip First N Lines" disabled={readOnly}
                 value={fileForm.skipFirstNLines ?? 0}
                 onChange={(e) => setFileForm((p) => ({ ...p, skipFirstNLines: e.target.value ? Number(e.target.value) : 0 }))}
                 helperText="Preamble lines before header" slotProps={{ htmlInput: { min: 0 } }} />
@@ -542,7 +571,7 @@ export default function DataSourceForm({ readOnly = false }: Props) {
                 Map source CSV columns to schema fields. Select the schema field name (prefilled from defined schema).
               </Typography>
             </Box>
-            <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={openAddFf}>Add Field</Button>
+            {!readOnly && <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={openAddFf}>Add Field</Button>}
           </Box>
           <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
             <DataGrid rows={(fileForm.fields ?? []).map((f, i) => ({ ...f, _idx: i, id: i }))} columns={ffCols}
@@ -551,21 +580,23 @@ export default function DataSourceForm({ readOnly = false }: Props) {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFileDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={commitFile} disabled={!fileForm.filePath}>
-            {editFileIdx !== null ? 'Update File' : 'Add File Path'}
-          </Button>
+          <Button onClick={() => setFileDialog(false)}>{readOnly ? 'Close' : 'Cancel'}</Button>
+          {!readOnly && (
+            <Button variant="contained" onClick={commitFile} disabled={!fileForm.filePath}>
+              {editFileIdx !== null ? 'Update File' : 'Add File Path'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
       {/* File Field Dialog */}
       <Dialog open={ffDialog} onClose={() => setFfDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editFfIdx !== null ? 'Edit Field Mapping' : 'Add Field Mapping'}</DialogTitle>
+        <DialogTitle>{readOnly ? 'View Field Mapping' : (editFfIdx !== null ? 'Edit Field Mapping' : 'Add Field Mapping')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid size={{ xs: 12, sm: 7 }}>
               {schemaFields.length > 0 ? (
-                <TextField fullWidth select required label="Schema Field (Name)" value={ffForm.fieldAlias}
+                <TextField fullWidth select required label="Schema Field (Name)" value={ffForm.fieldAlias} disabled={readOnly}
                   onChange={(e) => setFfForm((p) => ({ ...p, fieldAlias: e.target.value, fieldName: p.fieldName || e.target.value }))}
                   helperText="Destination column this source column maps to">
                   {schemaFields.map((sf) => (
@@ -578,35 +609,47 @@ export default function DataSourceForm({ readOnly = false }: Props) {
                   ))}
                 </TextField>
               ) : (
-                <TextField fullWidth required label="Schema Field Alias" value={ffForm.fieldAlias}
+                <TextField fullWidth required label="Schema Field Alias" value={ffForm.fieldAlias} disabled={readOnly}
                   onChange={(e) => setFfForm((p) => ({ ...p, fieldAlias: e.target.value, fieldName: p.fieldName || e.target.value }))}
                   helperText="Define schema fields on Step 1 for a dropdown" slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
               )}
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }}>
-              <TextField fullWidth label="Column Number" type="number" value={ffForm.columnNumber ?? ''}
+              <TextField fullWidth label="Column Number" type="number" value={ffForm.columnNumber ?? ''} disabled={readOnly}
                 onChange={(e) => setFfForm((p) => ({ ...p, columnNumber: e.target.value ? Number(e.target.value) : undefined }))}
                 helperText="1-based column index" slotProps={{ htmlInput: { min: 1 } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 7 }}>
-              <TextField fullWidth label="Source Field Name" value={ffForm.fieldName}
+              <TextField fullWidth label="Source Field Name" value={ffForm.fieldName} disabled={readOnly}
                 onChange={(e) => setFfForm((p) => ({ ...p, fieldName: e.target.value }))}
                 helperText="CSV column header (auto-filled from schema field name)"
                 slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }}>
-              <TextField fullWidth select required label="Source Data Type" value={ffForm.dataType}
-                onChange={(e) => setFfForm((p) => ({ ...p, dataType: e.target.value as FieldDataType }))}>
+              <TextField fullWidth select required label="Source Data Type" value={ffForm.dataType} disabled={readOnly}
+                onChange={(e) => setFfForm((p) => ({ ...p, dataType: e.target.value as FieldDataType, dateFormat: '' }))}>
                 {DATA_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
               </TextField>
             </Grid>
+            {ffForm.dataType === 'DATE' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField fullWidth label="Date Format" value={ffForm.dateFormat ?? ''} disabled={readOnly}
+                  onChange={(e) => setFfForm((p) => ({ ...p, dateFormat: e.target.value }))}
+                  helperText={readOnly
+                    ? (!ffForm.dateFormat ? 'Using default ISO-8601 (yyyy-MM-dd)' : 'Java DateTimeFormatter pattern')
+                    : 'Java DateTimeFormatter pattern — leave blank for ISO-8601 (yyyy-MM-dd). Examples: dd/MM/yyyy · MM-dd-yyyy · yyyyMMdd'}
+                  slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFfDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={commitFf} disabled={!ffForm.fieldAlias || !ffForm.fieldName}>
-            {editFfIdx !== null ? 'Update' : 'Add Mapping'}
-          </Button>
+          <Button onClick={() => setFfDialog(false)}>{readOnly ? 'Close' : 'Cancel'}</Button>
+          {!readOnly && (
+            <Button variant="contained" onClick={commitFf} disabled={!ffForm.fieldAlias || !ffForm.fieldName}>
+              {editFfIdx !== null ? 'Update' : 'Add Mapping'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -621,4 +664,3 @@ export default function DataSourceForm({ readOnly = false }: Props) {
     </>
   );
 }
-

@@ -46,6 +46,14 @@ public class DataSourceFieldRequest {
     @NotNull(message = "Data type is required")
     private FieldDataType dataType;
 
+    @Schema(
+            description = "Date format pattern in standard Java DateTimeFormatter syntax. "
+                    + "Only applicable when dataType is DATE. "
+                    + "Defaults to ISO-8601 (yyyy-MM-dd) when omitted.",
+            example = "dd/MM/yyyy"
+    )
+    private String dateFormat;
+
     @Schema(description = "Optional human-readable description shown in rule-expression hints",
             example = "Transaction amount in base currency")
     private String description;

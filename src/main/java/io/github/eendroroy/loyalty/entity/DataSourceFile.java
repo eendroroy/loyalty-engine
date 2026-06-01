@@ -61,6 +61,15 @@ public class DataSourceFile {
     @Column(name = "skip_first_n_lines")
     private Integer skipFirstNLines;
 
+    /**
+     * Optional absolute path to a directory where successfully imported files are archived.
+     * After a successful ingestion the original file is moved into this directory and
+     * renamed with a timestamp suffix to avoid overwriting earlier archives.
+     * When {@code null} the file is left in place.
+     */
+    @Column(name = "archive_directory")
+    private String archiveDirectory;
+
     /** Typed field definitions that describe the schema of this file's data. */
     @JsonIgnoreProperties("dataSourceFile")
     @OneToMany(mappedBy = "dataSourceFile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

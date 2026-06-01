@@ -18,5 +18,6 @@ public class DataSourceFieldResponse {
     private String fieldAlias;
     private Integer columnNumber;
     private FieldDataType dataType;
+    private String dateFormat;
     private String description;
 }
