@@ -1,6 +1,6 @@
 # Loyalty Management System
 
-## _NOTE:_ This is an experimental project (work in progress), 100% of the codebase is generated using AI agents by feeding the conceptual ideas
+> **Note:** This is an experimental, work-in-progress project. The entire codebase is AI-generated — produced by GitHub Copilot agents from high-level conceptual requirements, with no manual coding involved. 
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
