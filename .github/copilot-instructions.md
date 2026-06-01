@@ -435,6 +435,67 @@ const RuleForm = () => {
 };
 ```
 
+### DataSourceForm — readOnly Handling Pattern
+
+The `DataSourceForm` component (`readOnly` prop) uses this pattern throughout all nested dialogs:
+
+```tsx
+// fileCols / ffCols — show VisibilityRoundedIcon in view mode, EditRoundedIcon in edit mode
+{readOnly ? <VisibilityRoundedIcon fontSize="small" /> : <EditRoundedIcon fontSize="small" />}
+// Remove button hidden in view mode:
+{!readOnly && <Tooltip title="Remove"><IconButton .../></Tooltip>}
+
+// All text field inputs in File Dialog and Field Dialog:
+<TextField ... disabled={readOnly} />
+
+// "Add Field" button hidden in view mode:
+{!readOnly && <Button ...>Add Field</Button>}
+
+// Dialog actions — Close only in view mode, Cancel + Save in edit mode:
+{readOnly ? (
+  <Button onClick={...}>Close</Button>
+) : (
+  <>
+    <Button onClick={...}>Cancel</Button>
+    <Button variant="contained" onClick={...}>Save</Button>
+  </>
+)}
+```
+
+### Date Format Field — Conditional Rendering
+
+The `dateFormat` TextField in the field mapping dialog only renders when `dataType === 'DATE'`:
+
+```tsx
+{ffForm.dataType === 'DATE' && (
+  <Grid size={{ xs: 12 }}>
+    <TextField fullWidth label="Date Format" value={ffForm.dateFormat ?? ''} disabled={readOnly}
+      onChange={(e) => setFfForm((p) => ({ ...p, dateFormat: e.target.value }))}
+      helperText="Java DateTimeFormatter pattern — leave blank for ISO-8601 (yyyy-MM-dd). Examples: dd/MM/yyyy · MM-dd-yyyy · yyyyMMdd"
+      slotProps={{ input: { sx: { fontFamily: 'monospace' } } }} />
+  </Grid>
+)}
+```
+
+The `ffCols` DataGrid always shows a `dateFormat` column:
+```tsx
+{ field: 'dateFormat', headerName: 'Date Format', width: 130,
+  renderCell: ({ value, row }: GridRenderCellParams) => row.dataType === 'DATE'
+    ? (value ? <Typography sx={{ fontFamily: 'monospace', color: 'warning.main' }}>{value}</Typography>
+             : <Typography color="text.disabled">ISO-8601</Typography>)
+    : <Typography color="text.disabled">—</Typography> },
+```
+
+Changing `dataType` away from `DATE` resets `dateFormat` to `''`:
+```tsx
+onChange={(e) => setFfForm((p) => ({ ...p, dataType: e.target.value as FieldDataType, dateFormat: '' }))}
+```
+
+Save payload strips blank `dateFormat` to `undefined` (so the API receives `null`):
+```tsx
+fields: f.fields?.map((field) => ({ ...field, dateFormat: field.dateFormat || undefined }))
+```
+
 ### Route Management
 ```tsx
 // App.tsx routing — includes voucher routes
@@ -456,7 +517,70 @@ const RuleForm = () => {
 
 ---
 
-## What Is NOW Implemented ✅
+## Data Source File & Field Architecture ✅
+
+### Entity Fields
+
+```java
+@Entity DataSourceFile {
+    String filePath;            // Unique system-wide absolute path
+    String fieldSeparator;      // CSV delimiter (null = ",")
+    String quoteCharacter;      // CSV quote char (null = '"')
+    String lineSeparator;       // Row separator (null = auto)
+    Integer skipFirstNLines;    // Preamble lines before header
+    String archiveDirectory;    // Optional: move file here after zero-error ingestion
+    List<DataSourceField> fields;
+}
+
+@Entity DataSourceField {
+    String fieldName;           // CSV column header / raw source key
+    String fieldAlias;          // Globally unique alias used in rule expressions
+    Integer columnNumber;       // 1-based CSV column index (optional)
+    FieldDataType dataType;     // STRING | INTEGER | DECIMAL | DATE | BOOLEAN
+    String dateFormat;          // Java DateTimeFormatter pattern — null = ISO-8601
+    String description;         // Hint text for rule-expression autocomplete
+}
+```
+
+### CSV Type Coercion Pattern
+```java
+// DataPullServiceImpl — always call with three args:
+rowData.put(field.getFieldAlias(), coerce(raw, field.getDataType(), field.getDateFormat()));
+
+private Object coerce(String raw, FieldDataType type, String dateFormat) {
+    if (raw == null || raw.isBlank()) return null;
+    var v = raw.trim();
+    return switch (type) {
+        case INTEGER -> Long.parseLong(v);
+        case DECIMAL -> new BigDecimal(v);
+        case DATE    -> {
+            if (dateFormat != null && !dateFormat.isBlank()) {
+                yield LocalDate.parse(v, DateTimeFormatter.ofPattern(dateFormat));
+            } else {
+                yield LocalDate.parse(v);  // ISO-8601 default
+            }
+        }
+        case BOOLEAN -> Boolean.parseBoolean(v);
+        case STRING  -> v;
+    };
+}
+```
+
+### File Archive Pattern
+```java
+// After zero-error ingestion in DataPullServiceImpl:
+if (result.errors() == 0 && file.getArchiveDirectory() != null) {
+    var archiveDir = Path.of(file.getArchiveDirectory());
+    var timestamp  = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss"));
+    var archiveName = baseName + "_" + timestamp + extension;
+    Files.move(sourcePath, archiveDir.resolve(archiveName), StandardCopyOption.ATOMIC_MOVE);
+    // Failure here is a WARNING only — ingestion result is not affected
+}
+```
+
+---
+
+
 
 These features are **complete and production-ready**:
 
@@ -483,6 +607,8 @@ These features are **complete and production-ready**:
 - Real-time validation with immediate feedback
 - Tabular field management using DataGrid components
 - Auto-generated webhook paths and sample request bodies
+- **Archive Directory per file source** — `archiveDirectory` on `DataSourceFile`; after zero-error ingestion the source file is atomically moved and renamed with a timestamp suffix (e.g. `feed_20260601T143022.csv`); move failure is a warning, not an error
+- **Per-field Date Format for DATE columns** — `dateFormat` on `DataSourceField`; Java `DateTimeFormatter` pattern (e.g. `dd/MM/yyyy`, `yyyyMMdd`); null/blank falls back to ISO-8601; shown in field mapping grid, editable in field dialog, disabled in view mode
 
 ### ✅ Automatic Data Lineage & Metadata Tracking
 - **Source Tracking**: Every imported row includes `source` metadata ("FILE:<filename>" or "HOOK:<producer>")
@@ -558,9 +684,9 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 
 ---
 
-## Current Status (v0.4.0) — Production Ready ✅
+## Current Status (v0.5.0) — Production Ready ✅
 
-### Enhanced Visual Rule Builder & Complete Platform
+### Enhanced Data Source Management & Complete Platform
 
 **Enhanced Visual Rule Builder (v0.4.0)**:
 - Dual-mode interface with seamless text/visual switching
@@ -607,7 +733,7 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 - Debounced validation to prevent API spam
 - Enhanced error handling with detailed parse error messages
 
-### Enhanced Data Source Management (v0.1.0)
+### Enhanced Data Source Management (v0.5.0)
 
 **Backend Improvements**:
 - Schema-first architecture with auto-synced webhook properties
@@ -615,6 +741,8 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 - Enhanced field management with atomic transactions
 - Archive/purge lifecycle with conflict detection
 - Comprehensive event system for reactive processing
+- **Archive Directory** — `archiveDirectory` on `DataSourceFile`; after zero-error ingestion file is atomically moved with timestamp suffix; failure is a warning
+- **Per-Field Date Format** — `dateFormat` on `DataSourceField`; Java `DateTimeFormatter` pattern; null/blank = ISO-8601 default
 
 **Frontend Enhancements**:
 - Multi-step wizard interface (Details → Ingestion → Review)
@@ -622,6 +750,9 @@ cp src/main/resources/application.example.yaml src/main/resources/application.ya
 - Tabular field management using DataGrid components
 - Auto-generated webhook paths and sample request bodies
 - Enhanced error handling with comprehensive type safety
+- **Date Format column in field mapping DataGrid** — visible for DATE fields, "ISO-8601" default shown, "—" for non-DATE
+- **Proper readOnly mode** — all file/field dialog fields disabled in view mode; View icon (eye) instead of Edit icon; "Close" button only; "Add Field" button hidden
+- **Conditional Date Format input** — shown in field dialog only for DATE type; editable in edit mode, disabled in view mode
 
 **Key Architecture Decisions**:
 - **Schema-First Approach**: Webhook properties auto-sync from schema fields (no duplication)

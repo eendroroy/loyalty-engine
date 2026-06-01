@@ -294,11 +294,12 @@ The Loyalty Management System is a comprehensive business platform designed to a
 
 **Functional Requirements**:
 - **FR3.1**: System shall ingest transaction data from POS, e-commerce, and mobile apps
-- **FR3.2**: System shall process CSV file uploads with configurable field mapping
+- **FR3.2**: System shall process CSV file uploads with configurable field mapping, including per-field date format patterns for DATE-type columns
 - **FR3.3**: System shall provide webhook endpoints for real-time data integration
 - **FR3.4**: System shall validate data quality and reject invalid records
 - **FR3.5**: System shall provide data transformation capabilities for format standardization
 - **FR3.6**: System shall maintain audit trails for all data processing activities
+- **FR3.7**: System shall support post-ingestion file archiving — successfully processed files shall be automatically moved to a configurable archive directory with a timestamp-based filename
 
 **Business Rules**:
 - Data sources must be configured by authorized administrators only

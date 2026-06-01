@@ -173,7 +173,25 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 
 ## Recent Updates
 
-### ✅ **v0.4.0 — Enhanced Visual Rule Builder & Production Ready Platform** (Latest)
+### ✅ **v0.5.0 — Enhanced Data Source File Management** (Latest)
+
+**Archive Directory per File Source**:
+- Each `DataSourceFile` can have an optional `archiveDirectory` path
+- After zero-error ingestion the source file is atomically moved there with a timestamp suffix (e.g. `feed_20260601T143022.csv`)
+- Move failure is logged as a warning — ingestion result is unaffected
+
+**Per-Field Date Format for DATE Columns**:
+- Each `DataSourceField` with `dataType: DATE` can specify a `dateFormat` using standard Java `DateTimeFormatter` patterns (e.g. `dd/MM/yyyy`, `yyyyMMdd`)
+- Omitting the format or leaving it blank defaults to ISO-8601 (`yyyy-MM-dd`)
+- The format is shown in the field mapping DataGrid and is editable in edit mode, read-only in view mode
+
+**Frontend readOnly Mode Fixes (DataSourceForm)**:
+- File and field dialog inputs are properly disabled in view mode
+- Eye (view) icon shown in view mode instead of pencil (edit) icon
+- "Add Field" button hidden in view mode; "Close" button shown instead of Cancel+Save
+- Date Format column visible in field mapping grid for DATE fields
+
+### ✅ **v0.4.0 — Enhanced Visual Rule Builder & Production Ready Platform**
 
 **Enhanced Visual Rule Builder**:
 - Dual-mode interface with seamless text/visual switching
@@ -267,6 +285,8 @@ Root package: `io.github.eendroroy.loyalty`
 - **Schema-First**: Reusable field definitions across files and webhooks
 - **Auto-Generated Webhooks**: Paths, properties, and sample requests
 - **Real-Time Validation**: Immediate feedback with comprehensive error handling
+- **Archive Directory**: Optional per-file path — processed files moved with timestamp suffix after zero-error ingestion
+- **Per-Field Date Format**: Configurable Java `DateTimeFormatter` pattern for DATE fields (e.g. `dd/MM/yyyy`); defaults to ISO-8601
 
 ### 📈 **Monitoring & Analytics**
 - **Live Status**: File watchers, webhook endpoints, processing history
@@ -356,6 +376,19 @@ metadata and destination table operations.
 | `fieldAlias` | Globally-unique identifier used in rule expressions, e.g. `transaction.amount` |
 | `columnNumber` | 1-based column index (CSV FILE sources only; optional — falls back to header name match) |
 | `dataType` | `STRING`, `INTEGER`, `DECIMAL`, `DATE`, `BOOLEAN` |
+| `dateFormat` | Java `DateTimeFormatter` pattern (e.g. `dd/MM/yyyy`, `yyyyMMdd`); only for `DATE` fields. Omit or leave blank to use ISO-8601 (`yyyy-MM-dd`) |
+| `description` | Optional hint shown in rule-expression editor autocomplete |
+
+**File ingestion file-level options** (on `DataSourceFile`):
+
+| Property | Purpose |
+|---|---|
+| `filePath` | Absolute path to the watched file or directory |
+| `fieldSeparator` | CSV column delimiter (default: `,`) |
+| `quoteCharacter` | CSV quote character (default: `"`) |
+| `lineSeparator` | Row delimiter (default: auto-detect) |
+| `skipFirstNLines` | Number of preamble lines to skip before the header row |
+| `archiveDirectory` | Optional absolute path. After zero-error ingestion the source file is moved here and renamed with a timestamp suffix (e.g. `feed_20260601T143022.csv`). Move failures are logged as warnings but do not fail the ingestion. |
 
 Because fields live on individual files, two files inside the same data source may map completely
 different columns to different aliases, enabling heterogeneous file formats in one logical source.
@@ -368,7 +401,8 @@ different columns to different aliases, enabling heterogeneous file formats in o
   only one application instance processes each file version; competing instances silently skip.
 - Loads each `DataSourceFile` with its **own** field definitions — columns are resolved by
   `columnNumber` (1-based) or by `fieldName` header match (case-insensitive) **for that specific file**.
-- Values type-coerced per `dataType`; ingestion summary returned as `DataPullResult`.
+- Values type-coerced per `dataType`; DATE fields use `dateFormat` when specified, ISO-8601 otherwise.
+- After zero-error ingestion, file is atomically moved to `archiveDirectory` (if configured) with a timestamp suffix.
 - On success, publishes `DataPulledEvent` for downstream rule evaluation.
 
 ### Webhook Ingestion
@@ -632,16 +666,17 @@ POST /api/admin/data-sources
   "files": [
     {
       "filePath": "/data/transactions_a.csv",
-      "description": "Format A — 3-column daily export",
+      "description": "Format A — 3-column daily export (dd/MM/yyyy dates)",
+      "archiveDirectory": "/data/archive",
       "fields": [
-        { "fieldName": "Date",   "fieldAlias": "transaction.date",   "columnNumber": 1, "dataType": "DATE" },
+        { "fieldName": "Date",   "fieldAlias": "transaction.date",   "columnNumber": 1, "dataType": "DATE",    "dateFormat": "dd/MM/yyyy" },
         { "fieldName": "Amount", "fieldAlias": "transaction.amount", "columnNumber": 2, "dataType": "DECIMAL" },
         { "fieldName": "Tier",   "fieldAlias": "customer.tier",      "columnNumber": 3, "dataType": "STRING" }
       ]
     },
     {
       "filePath": "/data/transactions_b.csv",
-      "description": "Format B — different column order",
+      "description": "Format B — different column order (ISO-8601 dates)",
       "fields": [
         { "fieldName": "Tier",   "fieldAlias": "customer.tier_b",    "columnNumber": 1, "dataType": "STRING" },
         { "fieldName": "Amount", "fieldAlias": "transaction.amount_b","columnNumber": 2, "dataType": "DECIMAL" }

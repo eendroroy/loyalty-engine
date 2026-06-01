@@ -1,9 +1,9 @@
 # Technical Requirements Specification — Loyalty Management System
 
 **Document Type**: Technical Requirements Specification  
-**Version**: 4.0  
-**Date**: April 1, 2026  
-**Status**: Production Ready (v0.4.0)  
+**Version**: 5.0  
+**Date**: June 1, 2026  
+**Status**: Production Ready (v0.5.0)  
 **Target Architecture**: Microservices with Event-Driven Architecture
 
 ---
@@ -280,6 +280,39 @@ CREATE TABLE data_sources (
 
 CREATE INDEX idx_data_sources_name ON data_sources(name);
 CREATE INDEX idx_data_sources_archived ON data_sources(archived);
+```
+
+**DataSourceFile Entity**
+```sql
+CREATE TABLE data_source_files (
+    id BIGSERIAL PRIMARY KEY,
+    data_source_id BIGINT NOT NULL REFERENCES data_sources(id),
+    file_path VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    field_separator VARCHAR(4),
+    quote_character VARCHAR(4),
+    line_separator VARCHAR(4),
+    skip_first_n_lines INTEGER NOT NULL DEFAULT 0,
+    archive_directory VARCHAR(255),   -- Optional: destination for post-ingestion file archiving
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+**DataSourceField Entity**
+```sql
+CREATE TABLE data_source_fields (
+    id BIGSERIAL PRIMARY KEY,
+    data_source_file_id BIGINT NOT NULL REFERENCES data_source_files(id),
+    field_name VARCHAR(255) NOT NULL,
+    field_alias VARCHAR(255) NOT NULL,
+    column_number INTEGER,
+    data_type VARCHAR(20) NOT NULL,
+    date_format VARCHAR(50),          -- Java DateTimeFormatter pattern for DATE fields; NULL = ISO-8601
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
 **Rule Entity**
@@ -1590,6 +1623,8 @@ and comprehensive field management capabilities.
 | DSF-03 | The system shall provide **tabular field mapping interfaces** with column number and name-based matching. | ✅ **IMPLEMENTED** |
 | DSF-04 | File configurations shall support **real-time validation** with immediate feedback on mapping errors. | ✅ **IMPLEMENTED** |
 | DSF-05 | The system shall maintain **file path uniqueness** across the entire system. | ✅ **IMPLEMENTED** |
+| DSF-06 | The system shall support an optional **archive directory** per file source so that successfully ingested files are automatically moved there after zero-error processing, with a timestamp-suffixed filename. | ✅ **IMPLEMENTED** |
+| DSF-07 | DATE-type field mappings shall support a configurable **date format pattern** (standard Java `DateTimeFormatter` syntax, e.g. `dd/MM/yyyy`, `yyyyMMdd`). Omitting the format defaults to ISO-8601 (`yyyy-MM-dd`). | ✅ **IMPLEMENTED** |
 
 ---
 
@@ -2101,8 +2136,10 @@ npm run dev  # Development server on port 5173
 - **Auto-Generated Webhook Paths** and sample request bodies
 - **Archive/Purge Lifecycle** with conflict detection
 - **File Watching Service** with reactive processing
+- **Archive Directory per File Source** — successfully ingested files moved automatically with timestamp suffix
+- **Per-Field Date Format** — configurable Java `DateTimeFormatter` pattern for DATE fields (defaults to ISO-8601)
 
-#### ✅ Enhanced Frontend Platform (v0.4.0)
+#### ✅ Enhanced Frontend Platform (v0.5.0)
 - **React 18 + TypeScript 5** with Vite 6 build system
 - **MUI v6 Component System** with comprehensive theme customization
 - **Dual-Mode Design System** (light/dark) with glassmorphism effects
@@ -2111,6 +2148,8 @@ npm run dev  # Development server on port 5173
 - **Live Validation Integration** with debounced API calls and visual feedback
 - **Modern Dashboard** with 4 stat cards, trend indicators, and Recharts integration
 - **Comprehensive Routing** covering all CRUD operations and workflows
+- **DataSourceForm readOnly mode** — all file/field dialog fields disabled; eye icon in view mode; Close-only dialog actions; Add Field hidden
+- **Date Format DataGrid column** — visible per-field in field mapping grid; editable in edit mode, disabled in view mode
 
 #### ✅ Modern UI/UX Enhancements (v0.4.0)
 - **Enhanced Dashboard**: Stat cards with gradient icons, trend badges, activity charts

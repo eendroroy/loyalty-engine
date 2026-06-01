@@ -25,12 +25,26 @@ erDiagram
     DATA_SOURCE_FILES {
         bigint id PK
         bigint data_source_id FK
-        varchar file_path "CSV file path"
+        varchar file_path "CSV file path (unique)"
         text description
         varchar field_separator "Default: comma"
         varchar quote_character "Default: double quote"
         varchar line_separator "Default: system"
         int skip_first_n_lines "Default: 0"
+        varchar archive_directory "Optional: post-ingestion archive path"
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DATA_SOURCE_FIELDS {
+        bigint id PK
+        bigint data_source_file_id FK
+        varchar field_name "CSV column header"
+        varchar field_alias "Unique alias for rule expressions"
+        int column_number "1-based column index (optional)"
+        varchar data_type "STRING|INTEGER|DECIMAL|DATE|BOOLEAN"
+        varchar date_format "DateTimeFormatter pattern; null = ISO-8601"
+        text description "Autocomplete hint in rule editor"
         timestamp created_at
         timestamp updated_at
     }
@@ -111,6 +125,7 @@ erDiagram
     DATA_SOURCES ||--o{ DATA_SOURCE_SCHEMA_FIELDS : "has schema"
     DATA_SOURCES ||--o{ DATA_SOURCE_FILES : "has files"
     DATA_SOURCES ||--o| DATA_SOURCE_WEBHOOKS : "has webhook"
+    DATA_SOURCE_FILES ||--o{ DATA_SOURCE_FIELDS : "has field mappings"
     
     RULES ||--o{ RULE_ACTIONS : "has actions"
     
